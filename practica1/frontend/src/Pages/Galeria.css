@@ -1,0 +1,365 @@
+/* Página principal */
+.galeria-page {
+    height: 100vh;
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    background-color: #000;
+}
+
+.main-content {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.content-section {
+    padding: 20px 0;
+    width: 100%;
+    margin: 0;
+}
+
+.section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Grid de obras - CON MARGEN APROPIADO */
+.obras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 15px;
+    padding: 15px;
+    width: calc(100vw - 30px);
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Tarjetas de artwork - MÁS GRANDES */
+.artwork-card {
+    position: relative;
+    width: 100%;
+    height: 450px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.artwork-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Badge de disponibilidad */
+.availability-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 12px;
+    z-index: 2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.availability-badge.available {
+    background: #28a745;
+}
+
+.availability-badge.sold {
+    background: #dc3545;
+}
+
+/* Overlay de información */
+.card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    border-radius: 0 0 15px 15px;
+    color: white;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: white;
+}
+
+.card-author {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 5px;
+}
+
+.card-price {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffd700;
+}
+
+/* RESPONSIVE - IMÁGENES MÁS GRANDES Y MENOS ESPACIO NEGRO */
+
+/* Pantallas grandes - 3 imágenes grandes por fila */
+@media (min-width: 1200px) {
+    .obras-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        padding: 15px;
+    }
+    .artwork-card {
+        height: 500px;
+    }
+}
+
+/* Pantallas medianas - 2 imágenes grandes por fila */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .obras-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 12px;
+    }
+    .artwork-card {
+        height: 450px;
+    }
+}
+
+/* Pantallas pequeñas - 2 imágenes por fila pero más grandes */
+@media (max-width: 767px) {
+    .obras-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 8px;
+    }
+    .artwork-card {
+        height: 300px;
+    }
+    .card-title {
+        font-size: 0.9rem;
+    }
+    .card-author {
+        font-size: 0.75rem;
+    }
+    .card-price {
+        font-size: 0.8rem;
+    }
+}
+
+/* ===============================
+   ESTILOS DEL MODAL
+   =============================== */
+
+/* Overlay del modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Contenido del modal */
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* Botón cerrar */
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(0, 0, 0, 1);
+}
+
+/* Imagen del modal */
+.modal-image {
+    flex: 1;
+    min-height: 400px;
+}
+
+.modal-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px 0 0 8px;
+}
+
+/* Información del modal */
+.modal-info {
+    flex: 1;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #fff;
+}
+
+.modal-titulo {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+}
+
+.modal-autor {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 12px;
+    font-weight: 400;
+}
+
+.modal-anio {
+    font-size: 1rem;
+    color: #888;
+    margin-bottom: 30px;
+    font-weight: 300;
+}
+
+.modal-precio {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 30px;
+    letter-spacing: -1px;
+}
+
+/* Disponibilidad */
+.modal-disponibilidad {
+    padding: 12px 25px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+}
+
+.modal-disponibilidad.disponible {
+    background: #f8f8f8;
+    color: #000;
+    border: 2px solid #000;
+}
+
+.modal-disponibilidad.vendida {
+    background: #000;
+    color: #fff;
+    border: 2px solid #000;
+}
+
+/* Botones */
+.btn-comprar {
+    background: #000;
+    color: white;
+    border: none;
+    padding: 18px 35px;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 1px;
+}
+
+.btn-comprar:hover {
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-no-disponible {
+    background: #f5f5f5;
+    color: #999;
+    border: 2px solid #ddd;
+    padding: 18px 35px;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    letter-spacing: 1px;
+}
+
+/* Responsive del modal */
+@media (max-width: 768px) {
+    .modal-content {
+        flex-direction: column;
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-image img {
+        border-radius: 8px 8px 0 0;
+        max-height: 300px;
+    }
+    
+    .modal-info {
+        padding: 30px;
+    }
+    
+    .modal-titulo {
+        font-size: 1.8rem;
+    }
+    
+    .modal-precio {
+        font-size: 2rem;
+    }
+    
+    .btn-comprar, .btn-no-disponible {
+        padding: 15px 25px;
+        font-size: 0.95rem;
+    }
+}
