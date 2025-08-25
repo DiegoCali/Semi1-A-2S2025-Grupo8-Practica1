@@ -1,3 +1,4 @@
+// src/routes/users.js
 import express from "express";
 import crypto from "crypto";
 import multer from "multer";
@@ -15,42 +16,27 @@ function md5(text) {
     return crypto.createHash("md5").update(text, "utf8").digest("hex");
 }
 
-let PHOTO_COL_EXISTS = null;
-async function ensurePhotoColumnExists() {
-    if (PHOTO_COL_EXISTS !== null) return PHOTO_COL_EXISTS;
-    const [rows] = await pool.query(
-        `SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'photo_url'`,
-        [process.env.DB_NAME]
-    );
-    PHOTO_COL_EXISTS = rows.length > 0;
-    return PHOTO_COL_EXISTS;
-}
-
+// GET /users/:id  → perfil (id, username, full_name, balance, photo_url?)
 router.get("/:id", async (req, res) => {
     try {
         const id = Number(req.params.id);
         if (!id) return res.status(400).json({ error: "id inválido" });
 
-        const hasPhoto = await ensurePhotoColumnExists();
-        const fields = hasPhoto
-            ? "id, username, full_name, balance, photo_url"
-            : "id, username, full_name, balance";
-
-        const [rows] = await pool.query(
-            `SELECT ${fields} FROM users WHERE id = ?`,
-            [id]
-        );
-        if (!rows.length)
+        // sp_get_user_profile debe retornar una fila con las columnas necesarias.
+        const [rs] = await pool.query("CALL sp_get_user_profile(?)", [id]);
+        // NOTA mysql2 con CALL retorna [ [rows], [sp_meta], ...]. Nos quedamos con el primer recordset:
+        const rows = rs?.[0] ?? rs;
+        if (!rows || !rows.length) {
             return res.status(404).json({ error: "Usuario no existe" });
-
-        res.json(rows[0]);
+        }
+        return res.json(rows[0]);
     } catch (e) {
         console.error("GET /users/:id error:", e);
-        res.status(500).json({ error: "Error al obtener el perfil" });
+        return res.status(500).json({ error: "Error al obtener el perfil" });
     }
 });
 
+// POST /users/:id/balance  { amount }
 router.post("/:id/balance", async (req, res) => {
     try {
         const id = Number(req.params.id);
@@ -62,26 +48,38 @@ router.post("/:id/balance", async (req, res) => {
                 .json({ error: "amount debe ser un número > 0" });
         }
 
-        const [result] = await pool.query(
-            `UPDATE users SET balance = balance + ? WHERE id = ?`,
-            [amount, id]
-        );
-        if (!result.affectedRows)
+        // sp_add_balance debe validar existencia de usuario y devolver el nuevo saldo
+        const [rs] = await pool.query("CALL sp_add_balance(?, ?)", [
+            id,
+            amount,
+        ]);
+        const rows = rs?.[0] ?? rs;
+        if (!rows || !rows.length) {
             return res.status(404).json({ error: "Usuario no existe" });
+        }
 
-        const [[user]] = await pool.query(
-            `SELECT id, username, full_name, balance FROM users WHERE id=?`,
-            [id]
-        );
-        res.json({ ok: true, balance: user.balance });
+        await pool.query("CALL sp_notify(?, ?, ?, ?)", [
+            id,
+            "system",
+            "Saldo recargado",
+            `Se acreditó Q${Number(amount).toFixed(2)} a tu cuenta.`,
+        ]);
+
+        // asumo columna new_balance
+        return res.json({
+            ok: true,
+            balance: rows[0].new_balance ?? rows[0].balance,
+        });
     } catch (e) {
         console.error("POST /users/:id/balance error:", e);
-        res.status(500).json({ error: "No se pudo actualizar el saldo" });
+        return res
+            .status(500)
+            .json({ error: "No se pudo actualizar el saldo" });
     }
 });
 
+// PUT /users/:id  { username?, full_name?, new_password?, current_password }
 router.put("/:id", async (req, res) => {
-    let conn;
     try {
         const id = Number(req.params.id);
         if (!id) return res.status(400).json({ error: "id inválido" });
@@ -94,94 +92,78 @@ router.put("/:id", async (req, res) => {
                 .json({ error: "current_password es requerido" });
         }
 
-        const currentHash = md5(current_password).slice(0, 16);
-        const [[u]] = await pool.query(
-            `SELECT id FROM users WHERE id = ? AND password_hash = ?`,
-            [id, currentHash]
+        // Normalizamos valores opcionales: pasar null cuando no se quiere cambiar
+        const u = (username && String(username).trim()) || null;
+        const f = (full_name && String(full_name).trim()) || null;
+        const newHash =
+            new_password && String(new_password).trim()
+                ? md5(new_password).slice(0, 16)
+                : null;
+        const currentHash = md5(String(current_password)).slice(0, 16);
+
+        // El SP debe: validar current_password, aplicar cambios recibidos != null, y
+        // devolver un resultado que podamos interpretar (por ejemplo { ok: 1 }).
+        const [rs] = await pool.query(
+            "CALL sp_update_user_profile(?, ?, ?, ?, ?)",
+            [id, u, f, newHash, currentHash]
         );
-        if (!u)
+        const rows = rs?.[0] ?? rs;
+
+        // Convenciones cómodas:
+        // - Si SP retorna { status: 'INVALID_PASSWORD' } → 401
+        // - Si SP retorna { status: 'USERNAME_DUP' } → 409
+        // - Si SP retorna { status: 'NOT_FOUND' } → 404
+        // - Si SP retorna { status: 'OK' } → 200
+        const r = rows && rows[0];
+
+        if (!r)
+            return res.status(500).json({ error: "Respuesta inválida del SP" });
+
+        if (r.status === "INVALID_PASSWORD") {
             return res
                 .status(401)
                 .json({ error: "Contraseña actual incorrecta" });
-
-        const sets = [];
-        const vals = [];
-
-        if (username && typeof username === "string" && username.trim()) {
-            sets.push("username = ?");
-            vals.push(username.trim());
         }
-        if (full_name && typeof full_name === "string" && full_name.trim()) {
-            sets.push("full_name = ?");
-            vals.push(full_name.trim());
+        if (r.status === "USERNAME_DUP") {
+            return res
+                .status(409)
+                .json({ error: "Nombre de usuario ya está en uso" });
         }
-        if (
-            new_password &&
-            typeof new_password === "string" &&
-            new_password.trim()
-        ) {
-            const newHash = md5(new_password).slice(0, 16);
-            sets.push("password_hash = ?");
-            vals.push(newHash);
+        if (r.status === "NOT_FOUND") {
+            return res.status(404).json({ error: "Usuario no existe" });
         }
-
-        if (!sets.length) {
+        // Si no hubo cambios, deja mensaje amigable
+        if (r.status === "NO_CHANGES") {
             return res.json({
                 ok: true,
                 message: "No hay cambios para aplicar",
             });
         }
 
-        conn = await pool.getConnection();
-        await conn.beginTransaction();
+        await pool.query("CALL sp_notify(?, ?, ?, ?)", [
+            id,
+            "system",
+            "Perfil actualizado",
+            "Tus datos de perfil fueron actualizados.",
+        ]);
 
-        const [result] = await conn.query(
-            `UPDATE users SET ${sets.join(", ")} WHERE id = ?`,
-            [...vals, id]
-        );
-        await conn.commit();
-
-        if (!result.affectedRows)
-            return res.status(404).json({ error: "Usuario no existe" });
         return res.json({ ok: true });
     } catch (e) {
-        if (conn) {
-            try {
-                await conn.rollback();
-            } catch {}
-        }
-        if (e && e.code === "ER_DUP_ENTRY") {
-            return res
-                .status(409)
-                .json({ error: "Nombre de usuario ya está en uso" });
-        }
+        // Si no manejamos el dup aquí, el SP ya lo debe haber expresado como USERNAME_DUP.
         console.error("PUT /users/:id error:", e);
-        res.status(500).json({ error: "No se pudo editar el perfil" });
-    } finally {
-        if (conn) {
-            try {
-                conn.release();
-            } catch {}
-        }
+        return res.status(500).json({ error: "No se pudo editar el perfil" });
     }
 });
 
+// POST /users/:id/photo  (multipart form-data con 'image')
 router.post("/:id/photo", upload.single("image"), async (req, res) => {
-    let conn;
     try {
         const id = Number(req.params.id);
         if (!id) return res.status(400).json({ error: "id inválido" });
         if (!req.file)
             return res.status(400).json({ error: "image es requerido" });
 
-        const hasPhoto = await ensurePhotoColumnExists();
-        if (!hasPhoto) {
-            return res.status(409).json({
-                error: "La columna photo_url no existe en la tabla users.",
-                suggestion: `Ejecuta: ALTER TABLE users ADD COLUMN photo_url VARCHAR(500) NULL AFTER balance;`,
-            });
-        }
-
+        // Subimos primero al storage para obtener la KEY
         const key = await storage.upload({
             buffer: req.file.buffer,
             mimeType: req.file.mimetype,
@@ -189,16 +171,24 @@ router.post("/:id/photo", upload.single("image"), async (req, res) => {
             nameBase: `u_${id}`,
         });
 
-        conn = await pool.getConnection();
-        await conn.beginTransaction();
-        const [result] = await conn.query(
-            `UPDATE users SET photo_url = ? WHERE id = ?`,
-            [key, id]
-        );
-        await conn.commit();
+        // Guardamos la key en DB vía SP (valida existencia de user)
+        const [rs] = await pool.query("CALL sp_set_user_photo(?, ?)", [
+            id,
+            key,
+        ]);
+        const rows = rs?.[0] ?? rs;
+        const r = rows && rows[0];
 
-        if (!result.affectedRows)
+        if (r?.status === "NOT_FOUND") {
             return res.status(404).json({ error: "Usuario no existe" });
+        }
+
+        await pool.query("CALL sp_notify(?, ?, ?, ?)", [
+            id,
+            "system",
+            "Foto de perfil actualizada",
+            "Tu foto de perfil se actualizó correctamente.",
+        ]);
 
         return res.json({
             ok: true,
@@ -208,59 +198,78 @@ router.post("/:id/photo", upload.single("image"), async (req, res) => {
                 : key,
         });
     } catch (e) {
-        if (conn) {
-            try {
-                await conn.rollback();
-            } catch {}
-        }
         console.error("POST /users/:id/photo error:", e);
-        res.status(500).json({
-            error: "No se pudo actualizar la foto de perfil",
-        });
-    } finally {
-        if (conn) {
-            try {
-                conn.release();
-            } catch {}
-        }
+        return res
+            .status(500)
+            .json({ error: "No se pudo actualizar la foto de perfil" });
     }
 });
 
+// GET /users/:id/photo  → 302 a la URL pública
+router.get("/:id/photo", async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        if (!id) return res.status(400).json({ error: "id inválido" });
+
+        const [rs] = await pool.query("CALL sp_get_user_photo(?)", [id]);
+        const rows = rs?.[0] ?? rs;
+        if (!rows || !rows.length)
+            return res.status(404).json({ error: "Usuario no existe" });
+
+        const key = rows[0].photo_url;
+        if (!key) return res.status(404).json({ error: "Usuario sin foto" });
+
+        const url = storage.publicUrlFromKey
+            ? storage.publicUrlFromKey(key)
+            : key;
+        return res.redirect(302, url);
+    } catch (e) {
+        console.error("GET /users/:id/photo error:", e);
+        return res.status(500).json({ error: "No se pudo obtener la foto" });
+    }
+});
+
+// GET /users/:id/notifications
 router.get("/:id/notifications", async (req, res) => {
     try {
         const id = Number(req.params.id);
-        const [rows] = await pool.query(
-            `SELECT id, type, title, body, is_read, created_at
-       FROM notifications
-       WHERE user_id = ?
-       ORDER BY created_at DESC`,
-            [id]
-        );
-        res.json(rows);
+        if (!id) return res.status(400).json({ error: "id inválido" });
+
+        const [rs] = await pool.query("CALL sp_get_notifications(?)", [id]);
+        const rows = rs?.[0] ?? rs;
+        return res.json(rows || []);
     } catch (e) {
         console.error("GET /users/:id/notifications error:", e);
-        res.status(500).json({
-            error: "No se pudieron obtener las notificaciones",
-        });
+        return res
+            .status(500)
+            .json({ error: "No se pudieron obtener las notificaciones" });
     }
 });
 
+// PUT /users/:id/notifications/:notifId/read
 router.put("/:id/notifications/:notifId/read", async (req, res) => {
     try {
         const id = Number(req.params.id);
         const notifId = Number(req.params.notifId);
-        const [r] = await pool.query(
-            `UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`,
-            [notifId, id]
-        );
-        if (!r.affectedRows)
+        if (!id || !notifId)
+            return res.status(400).json({ error: "parámetros inválidos" });
+
+        const [rs] = await pool.query("CALL sp_mark_notification_read(?, ?)", [
+            id,
+            notifId,
+        ]);
+        const rows = rs?.[0] ?? rs;
+        const r = rows && rows[0];
+
+        if (r?.status === "NOT_FOUND") {
             return res.status(404).json({ error: "No encontrada" });
-        res.json({ ok: true });
+        }
+        return res.json({ ok: true });
     } catch (e) {
         console.error("PUT /users/:id/notifications/:notifId/read error:", e);
-        res.status(500).json({
-            error: "No se pudo actualizar la notificación",
-        });
+        return res
+            .status(500)
+            .json({ error: "No se pudo actualizar la notificación" });
     }
 });
 

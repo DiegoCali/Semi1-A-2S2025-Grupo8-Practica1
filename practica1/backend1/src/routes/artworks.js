@@ -10,73 +10,138 @@ const upload = multer({
 });
 const storage = getStorage();
 
+/** Helper para leer el primer recordset de CALL ... */
+function firstRs(callResult) {
+    // mysql2/promise retorna: [ [rows], [fields], ... ]
+    // Cuando es CALL, el primer elemento es un array (result set 0)
+    if (Array.isArray(callResult) && Array.isArray(callResult[0])) {
+        return callResult[0];
+    }
+    return callResult;
+}
+
+/** GET /artworks  -> lista pública con paginación */
 router.get("/", async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit || "100", 10), 200);
         const offset = Math.max(parseInt(req.query.offset || "0", 10), 0);
 
-        const [rows] = await pool.query(
-            `
-      SELECT a.id, a.url, a.price, a.is_available,
-             u.id AS seller_id, u.username AS seller
-      FROM artworks a
-      JOIN users u ON u.id = a.current_owner_id
-      WHERE a.is_available = 1
-      ORDER BY a.created_at DESC
-      LIMIT ? OFFSET ?
-      `,
-            [limit, offset]
-        );
+        const [rs] = await pool.query("CALL sp_artworks_list(?, ?)", [
+            limit,
+            offset,
+        ]);
+        const rows = firstRs(rs);
 
-        const withPublicUrl = rows.map((r) => ({
-            ...r,
+        const data = rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            image_name: r.image_name,
+            url_key: r.url,
+            price: r.price,
+            is_available: !!r.is_available,
+            seller_id: r.seller_id,
+            seller: r.seller,
             public_url: storage.publicUrlFromKey
                 ? storage.publicUrlFromKey(r.url)
                 : r.url,
         }));
 
-        res.json(withPublicUrl);
+        res.json(data);
     } catch (e) {
         console.error("GET /artworks error:", e);
         res.status(500).json({ error: "No se pudieron listar las obras" });
     }
 });
 
+/** GET /artworks/created?userId=... -> obras creadas por un autor (paginado) */
+router.get("/created", async (req, res) => {
+    try {
+        const ownerId = Number(req.query.userId);
+        if (!ownerId)
+            return res.status(400).json({ error: "userId es requerido" });
+
+        const limit = Math.min(parseInt(req.query.limit || "100", 10), 200);
+        const offset = Math.max(parseInt(req.query.offset || "0", 10), 0);
+
+        const [rs] = await pool.query("CALL sp_artworks_created(?, ?, ?)", [
+            ownerId,
+            limit,
+            offset,
+        ]);
+        const rows = firstRs(rs);
+
+        const data = rows.map((a) => {
+            const publicUrl = storage.publicUrlFromKey
+                ? storage.publicUrlFromKey(a.url)
+                : a.url;
+            return {
+                id: a.id,
+                name: a.name,
+                image_name: a.image_name,
+                url_key: a.url,
+                public_url: publicUrl,
+                price: a.price,
+                is_available: !!a.is_available,
+                acquisition_type: a.acquisition_type, // 'uploaded' | 'purchased'
+                original_owner_id: a.original_owner_id,
+                original_owner_full_name: a.original_owner_full_name,
+                current_owner_id: a.current_owner_id,
+                current_owner_full_name: a.current_owner_full_name,
+                created_at: a.created_at,
+                updated_at: a.updated_at,
+            };
+        });
+
+        res.json(data);
+    } catch (e) {
+        console.error("GET /artworks/created error:", e);
+        res.status(500).json({
+            error: "No se pudieron obtener las obras creadas",
+        });
+    }
+});
+
+/** GET /artworks/mine?userId=... -> inventario del usuario */
 router.get("/mine", async (req, res) => {
     try {
-        const userId = parseInt(req.query.userId, 10);
+        const userId = Number(req.query.userId);
         if (!userId)
             return res.status(400).json({ error: "userId es requerido" });
 
-        const [rows] = await pool.query(
-            `
-      SELECT a.id, a.url, a.price, a.is_available, a.acquisition_type
-      FROM artworks a
-      WHERE a.current_owner_id = ?
-      ORDER BY a.created_at DESC
-      `,
-            [userId]
-        );
+        const [rs] = await pool.query("CALL sp_artworks_mine(?)", [userId]);
+        const rows = firstRs(rs);
 
-        const withPublicUrl = rows.map((r) => ({
-            ...r,
-            public_url: storage.publicUrlFromKey
-                ? storage.publicUrlFromKey(r.url)
-                : r.url,
-        }));
+        const data = rows.map((a) => {
+            const publicUrl = storage.publicUrlFromKey
+                ? storage.publicUrlFromKey(a.url)
+                : a.url;
+            return {
+                id: a.id,
+                name: a.name,
+                image_name: a.image_name,
+                url_key: a.url,
+                price: a.price,
+                is_available: !!a.is_available,
+                acquisition_type: a.acquisition_type,
+                seller_id: a.original_owner_id,
+                seller: a.original_owner_full_name,
+                public_url: publicUrl,
+            };
+        });
 
-        res.json(withPublicUrl);
+        res.json(data);
     } catch (e) {
         console.error("GET /artworks/mine error:", e);
         res.status(500).json({ error: "No se pudo obtener el inventario" });
     }
 });
 
+/** POST /artworks/upload  (multipart: image, body: userId, name, price) */
 router.post("/upload", upload.single("image"), async (req, res) => {
-    let conn;
     try {
         const userId = parseInt(req.body.userId, 10);
         const price = Number(req.body.price ?? 0);
+        const name = (req.body.name || req.body.title || "").trim();
 
         if (!userId)
             return res.status(400).json({ error: "userId es requerido" });
@@ -84,12 +149,20 @@ router.post("/upload", upload.single("image"), async (req, res) => {
             return res
                 .status(400)
                 .json({ error: "image (archivo) es requerido" });
-        if (Number.isNaN(price) || price < 0) {
+        if (Number.isNaN(price) || price < 0)
             return res
                 .status(400)
                 .json({ error: "price debe ser un número >= 0" });
-        }
+        if (!name)
+            return res
+                .status(400)
+                .json({ error: "name (nombre de la obra) es requerido" });
+        if (name.length > 255)
+            return res
+                .status(400)
+                .json({ error: "name no puede exceder 255 caracteres" });
 
+        // 1) Subir imagen -> obtener KEY
         const key = await storage.upload({
             buffer: req.file.buffer,
             mimeType: req.file.mimetype,
@@ -97,22 +170,29 @@ router.post("/upload", upload.single("image"), async (req, res) => {
             nameBase: `art_${userId}`,
         });
 
-        conn = await pool.getConnection();
-        await conn.beginTransaction();
-
-        const [result] = await conn.query(
-            `
-      INSERT INTO artworks
-        (original_owner_id, current_owner_id, acquisition_type, url, is_available, price)
-      VALUES (?, ?, 'uploaded', ?, 1, ?)
-      `,
-            [userId, userId, key, price]
-        );
-
-        await conn.commit();
+        // 2) Dejar que la BD haga el INSERT (reglas en triggers + SP)
+        const [rs] = await pool.query("CALL sp_artwork_publish(?, ?, ?, ?)", [
+            userId,
+            name,
+            price,
+            key,
+        ]);
+        const rows = firstRs(rs);
+        const newId =
+            rows?.[0]?.id ??
+            rows?.[0]?.insert_id ??
+            rows?.[0]?.LAST_INSERT_ID ??
+            null;
+        await pool.query("CALL sp_notify(?, ?, ?, ?)", [
+            userId,
+            "system",
+            "Obra publicada",
+            `Publicaste "${name}" por Q${Number(price).toFixed(2)}.`,
+        ]);
 
         return res.status(201).json({
-            id: result.insertId,
+            id: newId,
+            name,
             url_key: key,
             public_url: storage.publicUrlFromKey
                 ? storage.publicUrlFromKey(key)
@@ -120,11 +200,6 @@ router.post("/upload", upload.single("image"), async (req, res) => {
             price,
         });
     } catch (e) {
-        if (conn) {
-            try {
-                await conn.rollback();
-            } catch {}
-        }
         if (e && e.code === "ER_DUP_ENTRY") {
             return res
                 .status(409)
@@ -132,14 +207,10 @@ router.post("/upload", upload.single("image"), async (req, res) => {
         }
         console.error("POST /artworks/upload error:", e);
         return res.status(500).json({ error: "No se pudo publicar la obra" });
-    } finally {
-        if (conn)
-            try {
-                conn.release();
-            } catch {}
     }
 });
 
+/** Debug: mantiene igual */
 router.get("/__debug", (req, res) => {
     try {
         const driver = process.env.STORAGE_DRIVER || "local";
