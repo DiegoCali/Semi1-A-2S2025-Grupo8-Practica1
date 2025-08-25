@@ -1,26 +1,80 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
+import { userService } from '../service/users';
 import './EditarPerfil.css';
 
 export default function EditarPerfil() {
-    // Estados para el formulario
+    const navigate = useNavigate();
+    
+    // Estados para el formulario (datos reales del usuario)
     const [formData, setFormData] = useState({
-        username: "usuario_demo",
-        nombreCompleto: "Juan Carlos Pérez García",
-        foto: "https://picsum.photos/150/150?random=user"
+        username: '',
+        full_name: '',
+        phone: '',
+        email: '',
+        photo: null
     });
 
+    // Estados para las contraseñas
     const [passwords, setPasswords] = useState({
-        actual: '',
-        nueva: '',
-        confirmar: ''
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
     });
 
-    const [cambiosRealizados, setCambiosRealizados] = useState(false);
+    // Estados de la UI
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [userData, setUserData] = useState(null);
     const [modalConfirmacion, setModalConfirmacion] = useState(false);
     const [campoACambiar, setCampoACambiar] = useState('');
-    const [imagenPreview, setImagenPreview] = useState(formData.foto);
+    const [imagenPreview, setImagenPreview] = useState(null);
+
+    // Cargar datos del usuario al iniciar
+    useEffect(() => {
+        cargarDatosUsuario();
+    }, []);
+
+    const cargarDatosUsuario = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user?.id) {
+                navigate('/login');
+                return;
+            }
+
+            const response = await userService.getUserById(user.id);
+            if (response.success) {
+                setUserData(response.data);
+                setFormData({
+                    username: response.data.username || '',
+                    full_name: response.data.full_name || '',
+                    phone: response.data.phone || '',
+                    email: response.data.email || '',
+                    photo: null
+                });
+                
+                if (response.data.photo_url) {
+                    setImagenPreview(response.data.photo_url);
+                }
+            }
+        } catch (error) {
+            console.error('Error cargando datos:', error);
+            setError('Error cargando los datos del usuario');
+        }
+    };
+
+    const obtenerIniciales = (fullName) => {
+        if (!fullName) return 'U';
+        return fullName
+            .split(' ')
+            .map(name => name.charAt(0))
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    };
 
     // Manejar cambios en los campos del formulario
     const handleInputChange = (e) => {
@@ -29,7 +83,6 @@ export default function EditarPerfil() {
             ...prev,
             [name]: value
         }));
-        setCambiosRealizados(true);
     };
 
     // Manejar cambios en las contraseñas
@@ -50,9 +103,8 @@ export default function EditarPerfil() {
                 setImagenPreview(event.target.result);
                 setFormData(prev => ({
                     ...prev,
-                    foto: event.target.result
+                    photo: file  // Guardamos el archivo, no la URL
                 }));
-                setCambiosRealizados(true);
             };
             reader.readAsDataURL(file);
         }
@@ -68,26 +120,83 @@ export default function EditarPerfil() {
     const cerrarModal = () => {
         setModalConfirmacion(false);
         setCampoACambiar('');
-        setPasswords({ actual: '', nueva: '', confirmar: '' });
+        setPasswords({ current_password: '', new_password: '', confirm_password: '' });
+        setError('');
+        setSuccess('');
     };
 
     // Confirmar cambios
-    const confirmarCambios = () => {
-        if (!passwords.actual) {
-            alert('Debes ingresar tu contraseña actual');
+    const confirmarCambios = async () => {
+        if (!passwords.current_password) {
+            setError('Debes ingresar tu contraseña actual');
             return;
         }
 
-        // Función vacía - aquí irá la lógica de validación y guardado
-        console.log('Guardando cambios para:', campoACambiar);
-        console.log('Datos del formulario:', formData);
-        console.log('Contraseña actual:', passwords.actual);
-        
-        // TODO: Implementar lógica de guardado
-        
-        setCambiosRealizados(false);
-        cerrarModal();
-        alert('Cambios guardados exitosamente');
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+
+            if (campoACambiar === 'foto') {
+                // Subir foto usando POST /users/:id/photo
+                const response = await userService.uploadPhoto(user.id, formData.photo);
+                if (response.success) {
+                    setSuccess('Foto actualizada exitosamente');
+                    // Actualizar datos del usuario con datos frescos de la API
+                    const updatedUser = await userService.getUserById(user.id);
+                    if (updatedUser.success) {
+                        localStorage.setItem('user', JSON.stringify(updatedUser.data));
+                        setUserData(updatedUser.data);
+                        if (updatedUser.data.photo_url) {
+                            setImagenPreview(updatedUser.data.photo_url);
+                        }
+                        // Disparar evento para actualizar Navbar
+                        window.dispatchEvent(new CustomEvent('userUpdated'));
+                        console.log('Foto actualizada. Nuevos datos:', updatedUser.data);
+                    }
+                } else {
+                    setError(response.message || 'Error al actualizar la foto');
+                }
+            } else if (campoACambiar === 'informacion') {
+                // Actualizar información usando PUT /users/:id
+                const updateData = {
+                    username: formData.username,
+                    full_name: formData.full_name,
+                    current_password: passwords.current_password
+                };
+
+                const response = await userService.updateProfile(user.id, updateData);
+                if (response.success) {
+                    setSuccess('Información actualizada exitosamente');
+                    // Actualizar localStorage con datos frescos de la API
+                    const updatedUser = await userService.getUserById(user.id);
+                    if (updatedUser.success) {
+                        localStorage.setItem('user', JSON.stringify(updatedUser.data));
+                        setUserData(updatedUser.data);
+                        // Actualizar formData con los nuevos datos
+                        setFormData(prev => ({
+                            ...prev,
+                            username: updatedUser.data.username || '',
+                            full_name: updatedUser.data.full_name || ''
+                        }));
+                        // Disparar evento para actualizar Navbar
+                        window.dispatchEvent(new CustomEvent('userUpdated'));
+                        console.log('Perfil actualizado. Nuevos datos:', updatedUser.data);
+                    }
+                } else {
+                    setError(response.message || 'Error al actualizar la información');
+                }
+            }
+            
+            cerrarModal();
+        } catch (error) {
+            console.error('Error:', error);
+            setError('Error interno del servidor');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Cambiar contraseña
@@ -125,7 +234,13 @@ export default function EditarPerfil() {
                         <div className="seccion-foto">
                             <h2>Foto de Perfil</h2>
                             <div className="foto-container">
-                                <img src={imagenPreview} alt="Foto de perfil" className="foto-preview" />
+                                {imagenPreview ? (
+                                    <img src={imagenPreview} alt="Foto de perfil" className="foto-preview" />
+                                ) : (
+                                    <div className="avatar-iniciales">
+                                        {obtenerIniciales(userData?.full_name || 'Usuario')}
+                                    </div>
+                                )}
                                 <div className="foto-controls">
                                     <label htmlFor="nueva-foto" className="btn-cambiar-foto">
                                         Cambiar Foto
@@ -137,14 +252,16 @@ export default function EditarPerfil() {
                                         onChange={handleImageChange}
                                         style={{ display: 'none' }}
                                     />
-
                                 </div>
-                            <button 
-                                className="btn-guardar-info"
-                                onClick={() => abrirModalConfirmacion('foto')}
-                            >
-                                Actualizar
-                            </button>
+                                {formData.photo && (
+                                    <button 
+                                        className="btn-guardar-info"
+                                        onClick={() => abrirModalConfirmacion('foto')}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Actualizando...' : 'Actualizar'}
+                                    </button>
+                                )}
                             </div>
                             
                       
@@ -155,12 +272,12 @@ export default function EditarPerfil() {
                             <h2>Información Personal</h2>
                             <div className="form-grid">
                                 <div className="form-group">
-                                    <label htmlFor="nombreCompleto">Nombre Completo</label>
+                                    <label htmlFor="full_name">Nombre Completo</label>
                                     <input
                                         type="text"
-                                        id="nombreCompleto"
-                                        name="nombreCompleto"
-                                        value={formData.nombreCompleto}
+                                        id="full_name"
+                                        name="full_name"
+                                        value={formData.full_name}
                                         onChange={handleInputChange}
                                     />
                                 </div>
@@ -184,7 +301,7 @@ export default function EditarPerfil() {
                                 className="btn-guardar-info"
                                 onClick={() => abrirModalConfirmacion('informacion')}
                             >
-                                Actualizar
+                                Guardar Cambios de Información
                             </button>
                         </div>
                     </div>
@@ -200,20 +317,26 @@ export default function EditarPerfil() {
                             <button className="modal-close" onClick={cerrarModal}>×</button>
                         </div>
                         <div className="modal-body">
+                            {error && <p className="error-message">{error}</p>}
+                            {success && <p className="success-message">{success}</p>}
                             <p>Para confirmar los cambios, ingresa tu contraseña actual:</p>
                             <div className="form-group">
                                 <input
                                     type="password"
                                     placeholder="Contraseña actual"
-                                    value={passwords.actual}
+                                    value={passwords.current_password}
                                     onChange={handlePasswordChange}
-                                    name="actual"
+                                    name="current_password"
                                     className="input-password-confirm"
                                 />
                             </div>
                             <div className="modal-actions">
-                                <button className="btn-confirmar-cambios" onClick={confirmarCambios}>
-                                    Confirmar Cambios
+                                <button 
+                                    className="btn-confirmar-cambios" 
+                                    onClick={confirmarCambios}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Guardando...' : 'Confirmar Cambios'}
                                 </button>
                                 <button className="btn-cancelar-cambios" onClick={cerrarModal}>
                                     Cancelar

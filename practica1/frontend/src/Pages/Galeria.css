@@ -48,6 +48,50 @@
     box-sizing: border-box !important;
 }
 
+/* Estados de carga y error */
+.loading-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 300px !important;
+    color: white !important;
+    font-size: 1.2rem !important;
+}
+
+.error-message {
+    text-align: center !important;
+    padding: 20px !important;
+    margin: 20px !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+    border: 1px solid #ff4444 !important;
+    border-radius: 8px !important;
+    color: #ff4444 !important;
+}
+
+.btn-retry {
+    background: #ff4444 !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+    cursor: pointer !important;
+    margin-top: 10px !important;
+    font-weight: 600 !important;
+    transition: background-color 0.3s !important;
+}
+
+.btn-retry:hover {
+    background: #cc3333 !important;
+}
+
+.no-obras {
+    text-align: center !important;
+    padding: 40px !important;
+    color: white !important;
+    font-size: 1.2rem !important;
+    grid-column: 1 / -1 !important; /* Ocupar toda la fila del grid */
+}
+
 /* Tarjetas de artwork - MÁS GRANDES */
 .artwork-card {
     position: relative !important;

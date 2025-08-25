@@ -1,46 +1,140 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
+import { userService } from '../service/users';
 import './Perfil.css';
 
 export default function Perfil() {
     const [montoAumentar, setMontoAumentar] = useState('');
+    const [usuario, setUsuario] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
 
-    // Datos de usuario simulados (después vendrán del estado global)
-    const usuario = {
-        id: 1,
-        username: "usuario_demo",
-        nombre: "Juan Carlos",
-        apellido: "Pérez García",
-        email: "juan.perez@artgallery.com",
-        foto: "https://picsum.photos/150/150?random=user",
-        saldo: 150000,
-        fechaRegistro: "2024-08-15",
-        obrasAdquiridas: 6
+    useEffect(() => {
+        cargarDatosUsuario();
+    }, []);
+
+    const cargarDatosUsuario = async () => {
+        setLoading(true);
+        setError('');
+        
+        try {
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                navigate('/login');
+                return;
+            }
+
+            const user = JSON.parse(userData);
+            
+            // Obtener datos actualizados del servidor
+            const result = await userService.getUserById(user.id);
+            
+            if (result.success) {
+                setUsuario(result.data);
+                // Actualizar localStorage con datos frescos
+                localStorage.setItem('user', JSON.stringify(result.data));
+            } else {
+                setError('Error al cargar datos del usuario');
+                setUsuario(user); // Usar datos del localStorage como fallback
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setError('Error de conexión');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const confirmarAumento = () => {
-        // Función vacía - aquí irá la lógica para aumentar saldo
-        console.log('Aumentando saldo:', montoAumentar);
-        // TODO: Implementar lógica de aumento de saldo
-        setMontoAumentar('');
+    const obtenerIniciales = (nombreCompleto) => {
+        if (!nombreCompleto) return 'U';
+        const nombres = nombreCompleto.split(' ');
+        if (nombres.length >= 2) {
+            return (nombres[0][0] + nombres[nombres.length - 1][0]).toUpperCase();
+        }
+        return nombreCompleto[0].toUpperCase();
+    };
+
+    const confirmarAumento = async () => {
+        if (!montoAumentar || parseFloat(montoAumentar) <= 0) {
+            alert('Por favor ingresa una cantidad válida mayor a 0');
+            return;
+        }
+
+        try {
+            const result = await userService.addBalance(usuario.id, parseFloat(montoAumentar));
+            
+            if (result.success && result.data.ok) {
+                alert(`Saldo agregado exitosamente! Nuevo saldo: $${parseFloat(result.data.balance).toLocaleString()}`);
+                setMontoAumentar('');
+                // Recargar datos del usuario
+                cargarDatosUsuario();
+                // Disparar evento para actualizar Navbar
+                window.dispatchEvent(new CustomEvent('userUpdated'));
+            } else {
+                alert('Error al agregar saldo: ' + (result.error || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error('Error al agregar saldo:', error);
+            alert('Error de conexión al agregar saldo');
+        }
     };
 
     const limpiarFormulario = () => {
         setMontoAumentar('');
     };
 
+    // Mostrar loading
+    if (loading) {
+        return (
+            <div className='perfil-page'>
+                <Navbar/>
+                <main className="main-content">
+                    <div className="loading-container">
+                        <p>Cargando perfil...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // Mostrar error si no hay usuario
+    if (!usuario) {
+        return (
+            <div className='perfil-page'>
+                <Navbar/>
+                <main className="main-content">
+                    <div className="error-container">
+                        <p>Error al cargar el perfil</p>
+                        <button onClick={cargarDatosUsuario}>Reintentar</button>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className='perfil-page'>
             <Navbar/>
+            {error && (
+                <div className="error-banner">
+                    <p>{error}</p>
+                </div>
+            )}
             <main className="main-content">
                 <div className="perfil-header">
                     <div className="foto-usuario">
-                        <img src={usuario.foto} alt={`${usuario.nombre} ${usuario.apellido}`} />
+                        {usuario.photo_url ? (
+                            <img src={usuario.photo_url} alt={usuario.full_name} />
+                        ) : (
+                            <div className="avatar-iniciales">
+                                {obtenerIniciales(usuario.full_name)}
+                            </div>
+                        )}
                     </div>
                     <div className="info-usuario">
-                        <h1 className="nombre-completo">{usuario.nombre} {usuario.apellido}</h1>
+                        <h1 className="nombre-completo">{usuario.full_name}</h1>
                         <p className="username">@{usuario.username}</p>
                     </div>
                 </div>
@@ -48,7 +142,7 @@ export default function Perfil() {
                 {/* Formulario de saldo integrado */}
                 <div className="saldo-form">
                     <h3>Saldo Disponible</h3>
-                    <p className="saldo-actual">Q.{usuario.saldo.toLocaleString()}</p>
+                    <p className="saldo-actual">${parseFloat(usuario.balance || 0).toLocaleString()}</p>
                     
                     <p>Ingresa el monto que deseas agregar a tu saldo:</p>
                     <div className="input-group">

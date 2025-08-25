@@ -131,6 +131,23 @@ body {
     background: #f5f5f5 !important;
 }
 
+/* Avatar con iniciales */
+.user-initials {
+    width: 35px !important;
+    height: 35px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    border: 2px solid #e0e0e0 !important;
+    text-transform: uppercase !important;
+    font-family: inherit !important;
+}
+
 .user-avatar {
     width: 35px !important;
     height: 35px !important;

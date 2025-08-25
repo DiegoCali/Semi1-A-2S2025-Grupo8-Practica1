@@ -1,15 +1,61 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { userService } from '../service/users';
 import './Navbar.css';
 
 export default function Navbar() {
     const [menuPerfil, setMenuPerfil] = useState(false);
+    const [usuario, setUsuario] = useState(null);
+    const navigate = useNavigate();
     
-    // Datos de usuario simulados (después vendrán del estado global)
-    const usuario = {
-        nombre: "Usuario Demo",
-        saldo: 150000,
-        foto: "https://picsum.photos/40/40?random=user"
+    // Cargar datos del usuario del localStorage
+    useEffect(() => {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            setUsuario(JSON.parse(userData));
+        }
+
+        // Función para recargar datos del usuario desde la API
+        const recargarDatosUsuario = async () => {
+            try {
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    const response = await userService.getUserById(user.id);
+                    if (response.success) {
+                        setUsuario(response.data);
+                        localStorage.setItem('user', JSON.stringify(response.data));
+                        console.log('Datos del usuario actualizados en Navbar:', response.data);
+                    }
+                }
+            } catch (error) {
+                console.error('Error recargando datos del usuario:', error);
+            }
+        };
+
+        // Escuchar evento de actualización de usuario
+        const handleUserUpdated = (event) => {
+            // En lugar de usar event.detail, recargar desde API para obtener TODOS los datos
+            recargarDatosUsuario();
+        };
+
+        window.addEventListener('userUpdated', handleUserUpdated);
+
+        // Cleanup del listener
+        return () => {
+            window.removeEventListener('userUpdated', handleUserUpdated);
+        };
+    }, []);
+
+    // Función para obtener las iniciales del nombre completo
+    const obtenerIniciales = (nombreCompleto) => {
+        if (!nombreCompleto) return 'U';
+        
+        const nombres = nombreCompleto.split(' ');
+        if (nombres.length >= 2) {
+            return (nombres[0][0] + nombres[nombres.length - 1][0]).toUpperCase();
+        }
+        return nombreCompleto[0].toUpperCase();
     };
 
     const toggleMenuPerfil = () => {
@@ -17,16 +63,26 @@ export default function Navbar() {
     };
 
     const cerrarSesion = () => {
-        // Función vacía - aquí irá la lógica de cerrar sesión
-        console.log('Cerrando sesión...');
-        // TODO: Implementar lógica de cierre de sesión
+        // Limpiar localStorage y redirigir al login
+        localStorage.removeItem('user');
+        console.log('Sesión cerrada');
+        navigate('/login');
     };
 
-    const aumentarSaldo = () => {
-        // Función vacía - aquí irá la lógica para aumentar saldo
-        console.log('Aumentando saldo...');
-        // TODO: Implementar lógica para aumentar saldo
-    };
+
+
+    // Si no hay usuario logueado, no mostrar el navbar o mostrar versión básica
+    if (!usuario) {
+        return (
+            <nav className="navbar">
+                <div className="navbar-container">
+                    <div className="navbar-brand">
+                        <Link to="/login">ArtGallery</Link>
+                    </div>
+                </div>
+            </nav>
+        );
+    }
 
     return (
         <nav className="navbar">
@@ -46,12 +102,14 @@ export default function Navbar() {
                 <div className="navbar-user">
                     <div className="user-saldo">
                         <span className="saldo-label">Saldo:</span>
-                        <span className="saldo-amount">${usuario.saldo.toLocaleString()}</span>
+                        <span className="saldo-amount">Q.{parseFloat(usuario.balance).toLocaleString()}</span>
                     </div>
                     
                     <div className="user-profile" onClick={toggleMenuPerfil}>
-                        <img src={usuario.foto} alt="Perfil" className="user-avatar" />
-                        <span className="user-name">{usuario.nombre}</span>
+                        <div className="user-initials">
+                            {obtenerIniciales(usuario.full_name)}
+                        </div>
+                        <span className="user-name">{usuario.full_name}</span>
                         <span className={`dropdown-arrow ${menuPerfil ? 'open' : ''}`}>▼</span>
                     </div>
 
@@ -65,7 +123,6 @@ export default function Navbar() {
                                 Editar Perfil
                             </Link>
                             <div className="dropdown-divider"></div>
-                           
                             <button onClick={cerrarSesion} className="dropdown-item dropdown-button logout">
                                 Cerrar Sesión
                             </button>
