@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import { artworkService } from '../service/artworks';
+import { notificationHelpers } from '../utils/notificationHelpers';
 import './cargarObras.css';
 
 export default function CargarObras() {
@@ -147,6 +148,12 @@ export default function CargarObras() {
 
             if (result.success) {
                 mostrarNotificacion(`¡Obra "${result.data.name}" subida exitosamente!`, 'success');
+                
+                // Actualizar notificaciones inmediatamente
+                setTimeout(() => {
+                    notificationHelpers.refreshNotifications();
+                }, 1000);
+                
                 setTimeout(() => {
                     limpiarFormulario();
                 }, 2000);

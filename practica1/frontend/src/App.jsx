@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './Pages/Home'
 import Galeria from './Pages/Galeria'
 import MiGaleria from './Pages/mi-galeria'

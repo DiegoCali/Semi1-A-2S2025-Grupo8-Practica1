@@ -107,7 +107,7 @@ export default function Compras() {
                                             {obra.autor} • {obra.anio}
                                         </div>
                                         <div className="card-price">
-                                            ${obra.precio}
+                                            Q.{obra.precio}
                                         </div>
                                     </div>
                                 </div>

@@ -65,6 +65,7 @@ export default function Navbar() {
     const cerrarSesion = () => {
         // Limpiar localStorage y redirigir al login
         localStorage.removeItem('user');
+        localStorage.removeItem('photo');
         navigate('/login');
     };
 

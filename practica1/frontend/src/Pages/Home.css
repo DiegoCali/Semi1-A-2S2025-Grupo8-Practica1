@@ -80,6 +80,8 @@ form  {
 	padding: 0 50px !important;
 	height: 100% !important;
 	text-align: center !important;
+	overflow-y: auto !important;
+	max-height: 700px !important;
 }
 
 input {
@@ -209,4 +211,115 @@ input {
 
 .container.right-panel-active .overlay-right {
 	transform: translateX(20%) !important;
+}
+
+/* Estilos mejorados para scroll */
+form::-webkit-scrollbar {
+	width: 8px !important;
+}
+
+form::-webkit-scrollbar-track {
+	background: #2c2a2a !important;
+	border-radius: 10px !important;
+}
+
+form::-webkit-scrollbar-thumb {
+	background: #FF4B2B !important;
+	border-radius: 10px !important;
+}
+
+form::-webkit-scrollbar-thumb:hover {
+	background: #e63e20 !important;
+}
+
+/* Estilo para contenedores de imagen con scroll */
+.image-preview-container {
+	max-width: 200px !important;
+	max-height: 200px !important;
+	overflow: auto !important;
+	border: 2px solid #ddd !important;
+	border-radius: 8px !important;
+	margin-top: 10px !important;
+}
+
+.image-preview-container::-webkit-scrollbar {
+	width: 6px !important;
+	height: 6px !important;
+}
+
+.image-preview-container::-webkit-scrollbar-track {
+	background: #f1f1f1 !important;
+	border-radius: 10px !important;
+}
+
+.image-preview-container::-webkit-scrollbar-thumb {
+	background: #888 !important;
+	border-radius: 10px !important;
+}
+
+.image-preview-container::-webkit-scrollbar-thumb:hover {
+	background: #555 !important;
+}
+
+/* Notificaciones */
+.notification {
+    position: fixed !important;
+    top: 120px !important;
+    right: 20px !important;
+    padding: 16px 24px !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    z-index: 1000 !important;
+    animation: slideIn 0.3s ease-out !important;
+    max-width: 350px !important;
+    word-wrap: break-word !important;
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+    border-left: 4px solid #2E7D32 !important;
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+    border-left: 4px solid #c62828 !important;
+}
+
+.notification .notification-content {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.notification .notification-message {
+    flex: 1 !important;
+    line-height: 1.4 !important;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%) !important;
+        opacity: 0 !important;
+    }
+    to {
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+    }
+    to {
+        transform: translateX(100%) !important;
+        opacity: 0 !important;
+    }
+}
+
+.notification.slide-out {
+    animation: slideOut 0.3s ease-out !important;
 }

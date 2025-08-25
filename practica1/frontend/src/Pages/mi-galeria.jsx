@@ -119,7 +119,7 @@ export default function MiGaleria() {
                                             {obra.autor} • {obra.anio}
                                         </div>
                                         <div className="card-price">
-                                            ${obra.precio} {obra.disponible ? '(Disponible)' : '(Vendida)'}
+                                            Q.{obra.precio} {obra.disponible ? '(Disponible)' : '(Vendida)'}
                                         </div>
                                     </div>
                                 </div>

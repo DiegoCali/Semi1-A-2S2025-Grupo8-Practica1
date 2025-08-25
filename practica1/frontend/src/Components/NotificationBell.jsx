@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { notificationService } from '../service/notifications';
+import eventBus, { NOTIFICATION_EVENTS } from '../utils/eventBus';
 import './NotificationBell.css';
 
 export default function NotificationBell() {
@@ -15,8 +16,16 @@ export default function NotificationBell() {
         // Cargar notificaciones cada 30 segundos
         const interval = setInterval(loadNotifications, 30000);
         
-        // Limpiar intervalo al desmontar
-        return () => clearInterval(interval);
+        // Escuchar eventos de actualización de notificaciones
+        const unsubscribeRefresh = eventBus.on(NOTIFICATION_EVENTS.REFRESH, loadNotifications);
+        const unsubscribeNew = eventBus.on(NOTIFICATION_EVENTS.NEW_NOTIFICATION, loadNotifications);
+        
+        // Limpiar intervalo y eventos al desmontar
+        return () => {
+            clearInterval(interval);
+            unsubscribeRefresh();
+            unsubscribeNew();
+        };
     }, []);
 
     // Cerrar dropdown al hacer click fuera
@@ -148,15 +157,17 @@ export default function NotificationBell() {
                                     >
                                      
                                         <div className="notification-content">
-                                            <h4 className="notification-title">
-                                                {notification.title}
-                                            </h4>
+                                            <div className="notification-header">
+                                                <h4 className="notification-title">
+                                                    {notification.title}
+                                                </h4>
+                                                <span className="notification-time">
+                                                    {formatDate(notification.created_at)}
+                                                </span>
+                                            </div>
                                             <p className="notification-body">
                                                 {notification.body}
                                             </p>
-                                            <span className="notification-time">
-                                                {formatDate(notification.created_at)}
-                                            </span>
                                         </div>
                                         {!notification.is_read && (
                                             <div className="unread-indicator"></div>
@@ -165,17 +176,6 @@ export default function NotificationBell() {
                                 ))
                         )}
                     </div>
-
-                    {notifications.length > 0 && (
-                        <div className="notification-footer">
-                            <button 
-                                className="view-all-btn"
-                                onClick={() => setIsOpen(false)}
-                            >
-                                Ver todas
-                            </button>
-                        </div>
-                    )}
                 </div>
             )}
         </div>

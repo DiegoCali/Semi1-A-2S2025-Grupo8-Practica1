@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import { userService } from '../service/users';
+import { notificationHelpers } from '../utils/notificationHelpers';
 import './EditarPerfil.css';
 
 export default function EditarPerfil() {
@@ -47,12 +48,19 @@ export default function EditarPerfil() {
 
             const response = await userService.getUserById(user.id);
             if (response.success) {
-                setUserData(response.data);
+                // Verificar si hay foto en caché
+                const cachedPhoto = localStorage.getItem('photo');
+                
+                setUserData({
+                    ...response.data,
+                    photo_url: cachedPhoto || response.data.photo_url || null
+                });
+                
                 setFormData({
                     username: response.data.username || '',
                     full_name: response.data.full_name || '',
                     photo: null,
-                    photo_url: response.data.photo_url || null
+                    photo_url: cachedPhoto || response.data.photo_url || null
                 });
                 
                 // Importante: Actualizar también localStorage con datos frescos
@@ -70,13 +78,25 @@ export default function EditarPerfil() {
             if (!userData) return;
 
             const user = JSON.parse(userData);
+            
+            // Primero verificar si ya existe la foto en localStorage
+            const cachedPhoto = localStorage.getItem('photo');
+            if (cachedPhoto) {
+                console.log('Cargando foto desde localStorage:', cachedPhoto);
+                setUserData((prev) => ({ ...prev, photo_url: cachedPhoto }));
+                return;
+            }
+
+            // Si no está en localStorage, hacer la petición al backend
             const result = await userService.getUserPhoto(user.id);
 
             if (result.success) {
-                // Actualizar el estado userData con la foto (igual que en Perfil.jsx)
+                // Guardar en localStorage para futuras cargas
+                localStorage.setItem('photo', result.url);
+                // Actualizar el estado userData con la foto
                 setUserData((prev) => ({ ...prev, photo_url: result.url }));
                 
-                // También actualizar localStorage
+                // También actualizar localStorage del usuario
                 const updatedUser = { ...user, photo_url: result.url };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
                 
@@ -192,13 +212,23 @@ export default function EditarPerfil() {
                 // Subir foto usando POST /users/:id/photo
                 const response = await userService.uploadPhoto(user.id, formData.photo);
                 if (response.success) {
+                    // Limpiar caché de foto para forzar recarga
+                    localStorage.removeItem('photo');
+                    
                     mostrarNotificacion('Foto actualizada exitosamente', 'success');
                     // Actualizar datos del usuario con datos frescos de la API
                     const updatedUser = await userService.getUserById(user.id);
                     if (updatedUser.success) {
                         localStorage.setItem('user', JSON.stringify(updatedUser.data));
                         setUserData(updatedUser.data);
-                        // La foto ya está incluida en updatedUser.data
+                        
+                        // Recargar la foto para actualizar el caché
+                        await cargarFotoUsuario();
+                        
+                        // Actualizar notificaciones inmediatamente
+                        setTimeout(() => {
+                            notificationHelpers.refreshNotifications();
+                        }, 1000);
                         
                         // Disparar evento para actualizar Navbar
                         window.dispatchEvent(new CustomEvent('userUpdated'));
@@ -229,6 +259,12 @@ export default function EditarPerfil() {
                             username: updatedUser.data.username || '',
                             full_name: updatedUser.data.full_name || ''
                         }));
+                        
+                        // Actualizar notificaciones inmediatamente
+                        setTimeout(() => {
+                            notificationHelpers.refreshNotifications();
+                        }, 1000);
+                        
                         // Disparar evento para actualizar Navbar
                         window.dispatchEvent(new CustomEvent('userUpdated'));
                       
