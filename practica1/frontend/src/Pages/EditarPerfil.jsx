@@ -16,12 +16,7 @@ export default function EditarPerfil() {
         photo: null
     });
 
-    // Estados para las contraseñas
-    const [passwords, setPasswords] = useState({
-        current_password: '',
-        new_password: '',
-        confirm_password: ''
-    });
+
 
     // Estados de la UI
     const [loading, setLoading] = useState(false);
@@ -35,6 +30,7 @@ export default function EditarPerfil() {
     // Cargar datos del usuario al iniciar
     useEffect(() => {
         cargarDatosUsuario();
+        cargarFotoUsuario();
     }, []);
 
     const cargarDatosUsuario = async () => {
@@ -63,6 +59,23 @@ export default function EditarPerfil() {
         } catch (error) {
             console.error('Error cargando datos:', error);
             setError('Error cargando los datos del usuario');
+        }
+    };
+
+    const cargarFotoUsuario = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user?.id) return;
+
+            const result = await userService.getUserPhoto(user.id);
+
+            if (result.success) {
+                setImagenPreview(result.url);
+            } else {
+                console.error('Error al cargar la foto del usuario:', result.error);
+            }
+        } catch (error) {
+            console.error('Error al cargar la foto del usuario:', error);
         }
     };
 
@@ -120,8 +133,7 @@ export default function EditarPerfil() {
     const cerrarModal = () => {
         setModalConfirmacion(false);
         setCampoACambiar('');
-        setPasswords({ current_password: '', new_password: '', confirm_password: '' });
-        setError('');
+         setError('');
         setSuccess('');
     };
 
@@ -154,7 +166,7 @@ export default function EditarPerfil() {
                         }
                         // Disparar evento para actualizar Navbar
                         window.dispatchEvent(new CustomEvent('userUpdated'));
-                        console.log('Foto actualizada. Nuevos datos:', updatedUser.data);
+                        
                     }
                 } else {
                     setError(response.message || 'Error al actualizar la foto');
@@ -183,7 +195,7 @@ export default function EditarPerfil() {
                         }));
                         // Disparar evento para actualizar Navbar
                         window.dispatchEvent(new CustomEvent('userUpdated'));
-                        console.log('Perfil actualizado. Nuevos datos:', updatedUser.data);
+                      
                     }
                 } else {
                     setError(response.message || 'Error al actualizar la información');
@@ -197,31 +209,6 @@ export default function EditarPerfil() {
         } finally {
             setLoading(false);
         }
-    };
-
-    // Cambiar contraseña
-    const cambiarContrasena = () => {
-        if (!passwords.actual || !passwords.nueva || !passwords.confirmar) {
-            alert('Debes completar todos los campos de contraseña');
-            return;
-        }
-
-        if (passwords.nueva !== passwords.confirmar) {
-            alert('Las nuevas contraseñas no coinciden');
-            return;
-        }
-
-        if (passwords.nueva.length < 6) {
-            alert('La nueva contraseña debe tener al menos 6 caracteres');
-            return;
-        }
-
-        // Función vacía - aquí irá la lógica de cambio de contraseña
-        console.log('Cambiando contraseña...');
-        // TODO: Implementar lógica de cambio de contraseña
-        
-        setPasswords({ actual: '', nueva: '', confirmar: '' });
-        alert('Contraseña cambiada exitosamente');
     };
 
     return (
@@ -253,7 +240,6 @@ export default function EditarPerfil() {
                                         style={{ display: 'none' }}
                                     />
                                 </div>
-                                {formData.photo && (
                                     <button 
                                         className="btn-guardar-info"
                                         onClick={() => abrirModalConfirmacion('foto')}
@@ -261,7 +247,7 @@ export default function EditarPerfil() {
                                     >
                                         {loading ? 'Actualizando...' : 'Actualizar'}
                                     </button>
-                                )}
+                            
                             </div>
                             
                       

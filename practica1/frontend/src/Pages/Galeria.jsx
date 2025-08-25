@@ -27,13 +27,11 @@ export default function Galeria() {
             const result = await artworkService.getAllArtworks(50, 0); // Cargar 50 obras
             
             if (result.success) {
-                console.log('Obras cargadas desde API:', result.data.length);
-                
                 if (result.data.length === 0) {
-                    console.log('API devuelve array vacío, usando datos de prueba');
+                    console.log('Vacio');
                    
                 } else {
-                    console.log('Obras reales cargadas:', result.data);
+                    console.log('Obras cargadas:', result.data);
                     setObras(result.data);
                 }
             } else {
@@ -90,15 +88,7 @@ export default function Galeria() {
         setPurchasing(true);
         
         try {
-            console.log('Iniciando compra:', {
-                buyerId: user.id,
-                artworkId: obraSeleccionada.id,
-                precio: obraSeleccionada.precio
-            });
-
             const result = await artworkService.purchaseArtwork(user.id, obraSeleccionada.id);
-            
-            console.log('Respuesta de compra:', result);
             
             if (result.success && result.data && result.data.ok) {
                 alert(`¡Compra exitosa! Has adquirido "${obraSeleccionada.titulo}" por $${obraSeleccionada.precio.toLocaleString()}`);

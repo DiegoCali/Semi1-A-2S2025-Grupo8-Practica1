@@ -148,6 +148,34 @@ export const userService = {
         }
     },
 
+    // Obtener foto de perfil del usuario
+    async getUserPhoto(userId) {
+        try {
+            if (!userId) {
+                throw new Error('userId es requerido');
+            }
+
+            const response = await fetch(`${API_BASE}/users/${userId}/photo`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return {
+                success: true,
+                url: response.url,
+                status: response.status
+            };
+        } catch (error) {
+            console.error('Error al obtener foto del usuario:', error);
+            return {
+                success: false,
+                error: error.message,
+                url: null
+            };
+        }
+    },
+
     // Actualizar datos del usuario en localStorage después de cambios
     async refreshUserData(userId) {
         try {

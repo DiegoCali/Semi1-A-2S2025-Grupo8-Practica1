@@ -37,6 +37,7 @@ body {
     display: flex !important;
     flex-direction: column !important;
     gap: 30px !important;
+    margin: 0px 0 30px 0 !important;
 }
 
 /* Secciones del formulario */

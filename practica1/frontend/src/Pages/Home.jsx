@@ -73,7 +73,6 @@ function Home (){
                 password: registerData.password
             });
 
-            console.log('Respuesta registro:', result); // Para debugging
 
             if (result.success && result.ok) {
                 alert('¡Registro exitoso! Ahora puedes iniciar sesión');
@@ -115,10 +114,7 @@ function Home (){
                 password: loginData.password
             });
 
-            console.log('Respuesta login:', result); // Para debugging
-
             if (result.success && result.id) {
-                console.log('Login exitoso:', result);
                 // Guardar solo los datos del usuario, sin los campos técnicos
                 const userData = {
                     id: result.id,

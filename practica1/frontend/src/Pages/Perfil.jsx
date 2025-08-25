@@ -13,6 +13,7 @@ export default function Perfil() {
 
     useEffect(() => {
         cargarDatosUsuario();
+        cargarFotoUsuario();
     }, []);
 
     const cargarDatosUsuario = async () => {
@@ -44,6 +45,24 @@ export default function Perfil() {
             setError('Error de conexión');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const cargarFotoUsuario = async () => {
+        try {
+            const userData = localStorage.getItem('user');
+            if (!userData) return;
+
+            const user = JSON.parse(userData);
+            const result = await userService.getUserPhoto(user.id);
+
+            if (result.success) {
+                setUsuario((prev) => ({ ...prev, photo_url: result.url }));
+            } else {
+                console.error('Error al cargar la foto del usuario:', result.error);
+            }
+        } catch (error) {
+            console.error('Error al cargar la foto del usuario:', error);
         }
     };
 

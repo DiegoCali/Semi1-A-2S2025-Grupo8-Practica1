@@ -6,7 +6,6 @@ export const artworkService = {
         try {
             const response = await fetch(`${API_BASE}/health`);
             const data = await response.json();
-            console.log('Health check:', data);
             return data;
         } catch (error) {
             console.error('Health check failed:', error);
@@ -19,18 +18,13 @@ export const artworkService = {
         try {
             // Probar primero sin parámetros para debugging
             const url = `${API_BASE}/artworks`;
-            console.log('Fetching from:', url);
             
             const response = await fetch(url);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            console.log('Response:', response);
             const artworks = await response.json();
-            console.log('Data from API:', artworks);
-            console.log('Array length:', Array.isArray(artworks) ? artworks.length : 'Not an array');
-            console.log('First item:', artworks[0]);
             
             // Transformar usando EXACTAMENTE las variables que devuelve laf API
             const transformedArtworks = artworks.map(artwork => ({
@@ -133,12 +127,15 @@ export const artworkService = {
     },
 
     // Subir nueva obra
-    async uploadArtwork(imageFile, userId, price) {
+    async uploadArtwork(imageFile, userId, price, name = '') {
         try {
             const formData = new FormData();
             formData.append('image', imageFile);
             formData.append('userId', userId.toString());
             formData.append('price', price.toString());
+            if (name.trim()) {
+                formData.append('name', name.trim());
+            }
 
             const response = await fetch(`${API_BASE}/artworks/upload`, {
                 method: 'POST',
@@ -156,6 +153,7 @@ export const artworkService = {
                 success: true,
                 data: {
                     id: result.id,
+                    name: result.name,
                     urlKey: result.url_key,
                     publicUrl: result.public_url,
                     precio: result.price

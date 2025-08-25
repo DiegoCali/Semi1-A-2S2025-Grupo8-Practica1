@@ -25,8 +25,7 @@ export default function Navbar() {
                     if (response.success) {
                         setUsuario(response.data);
                         localStorage.setItem('user', JSON.stringify(response.data));
-                        console.log('Datos del usuario actualizados en Navbar:', response.data);
-                    }
+                                }
                 }
             } catch (error) {
                 console.error('Error recargando datos del usuario:', error);
@@ -65,7 +64,6 @@ export default function Navbar() {
     const cerrarSesion = () => {
         // Limpiar localStorage y redirigir al login
         localStorage.removeItem('user');
-        console.log('Sesión cerrada');
         navigate('/login');
     };
 
@@ -96,6 +94,8 @@ export default function Navbar() {
                 <div className="navbar-links">
                     <Link to="/galeria" className="nav-link">Galería</Link>
                     <Link to="/mi-galeria" className="nav-link">Mis Obras</Link>
+                    <Link to="/cargar-obras" className="nav-link">Subir Obra</Link>
+                    <Link to="/mis-compras" className="nav-link">Mis Compras</Link>
                 </div>
 
                 {/* Sección de usuario */}
