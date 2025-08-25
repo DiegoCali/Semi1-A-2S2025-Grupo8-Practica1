@@ -25,6 +25,7 @@ CREATE TABLE users (
   -- IMPORTANTE: tu backend compara MD5 hex recortado a 16 chars
   password_hash   VARCHAR(16)  NOT NULL,
   balance         DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  photo_url       VARCHAR(500) DEFAULT NULL,
   created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_users_username (username)
