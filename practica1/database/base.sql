@@ -1,117 +1,79 @@
 -- =========================
--- Reset completo y creación
+-- ArtGalleryCloud - BASE SQL
+-- Requiere MySQL 8.0+
 -- =========================
-SET FOREIGN_KEY_CHECKS = 0;
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+SET sql_safe_updates = 0;
 
-DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS artworks;
-DROP TABLE IF EXISTS users;
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-CREATE DATABASE IF NOT EXISTS Semi_grupo_2322
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_0900_ai_ci;
-
-USE Semi_grupo_2322;
+-- Cambia el nombre si usas otro en tu .env
+CREATE DATABASE IF NOT EXISTS `Semi_grupo_2322`
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE `Semi_grupo_2322`;
 
 -- =========================
--- 1) Tabla de usuarios
+-- Tabla: users
 -- =========================
-CREATE TABLE users (
-  id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  username        VARCHAR(50)  NOT NULL UNIQUE,
-  full_name       VARCHAR(120) NOT NULL,
-  -- IMPORTANTE: tu backend compara MD5 hex recortado a 16 chars
-  password_hash   VARCHAR(16)  NOT NULL,
-  balance         DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  photo_url       VARCHAR(500) DEFAULT NULL,
-  created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_users_username (username)
-) ENGINE=InnoDB;
-
--- =========================
--- 2) Obras de arte
--- =========================
-CREATE TABLE artworks (
-  id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  original_owner_id    BIGINT UNSIGNED NOT NULL,
-  current_owner_id     BIGINT UNSIGNED NOT NULL,
-  acquisition_type     ENUM('uploaded','purchased') NOT NULL,
-  -- Guarda SOLO la "key" (ruta relativa) del bucket. Ej: Fotos_Publicadas/archivo.jpg
-  url                  VARCHAR(500) NOT NULL,
-  is_available         TINYINT(1) NOT NULL DEFAULT 1,
-  price                DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-  CONSTRAINT fk_art_original_owner
-    FOREIGN KEY (original_owner_id) REFERENCES users(id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-
-  CONSTRAINT fk_art_current_owner
-    FOREIGN KEY (current_owner_id) REFERENCES users(id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-
-  CONSTRAINT uq_art_url UNIQUE (url),
-  CONSTRAINT chk_art_price_nonneg CHECK (price >= 0),
-
-  KEY idx_art_original_owner (original_owner_id),
-  KEY idx_art_current_owner (current_owner_id),
-  KEY idx_art_is_available (is_available)
-) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS users
+(
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    username      VARCHAR(100)    NOT NULL,
+    full_name     VARCHAR(200)    NOT NULL,
+    password_hash CHAR(16)        NOT NULL, -- md5(...).slice(0,16)
+    balance       DECIMAL(12, 2)  NOT NULL DEFAULT 0.00,
+    photo_url     VARCHAR(500)    NULL,
+    created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users__username (username),
+    CONSTRAINT chk_users__balance_nonneg CHECK (balance >= 0),
+    CONSTRAINT chk_users__pwd_len CHECK (CHAR_LENGTH(password_hash) = 16)
+) ENGINE = InnoDB;
 
 -- =========================
--- 3) Notificaciones
+-- Tabla: artworks
 -- =========================
-CREATE TABLE notifications (
-  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id      BIGINT UNSIGNED NOT NULL,
-  type         ENUM('system','purchase','sale','general') NOT NULL DEFAULT 'general',
-  title        VARCHAR(150) NULL,
-  body         TEXT NOT NULL,
-  is_read      TINYINT(1) NOT NULL DEFAULT 0,
-  created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  CONSTRAINT fk_notif_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-
-  KEY idx_notif_user (user_id),
-  KEY idx_notif_is_read (is_read)
-) ENGINE=InnoDB;
-
--- =========================
--- 4) Seeds compatibles con tu login (MD5 -> 16 chars)
--- =========================
--- alice / alice123  |  bob / bob123
-INSERT INTO users (username, full_name, password_hash, balance) VALUES
-  ('alice','Alice Pérez', SUBSTRING(MD5('alice123'),1,16), 100.00),
-  ('bob',  'Bob Gómez',   SUBSTRING(MD5('bob123'),1,16),    50.00);
-
--- Una obra publicada por Alice (disponible)
--- Recuerda: en local la imagen vive en ./uploads/Fotos_Publicadas/..., y la API sirve /static/...
--- En cloud, el mismo valor será la key del objeto en S3.
-INSERT INTO artworks (original_owner_id, current_owner_id, acquisition_type, url, is_available, price)
-VALUES (1, 1, 'uploaded', 'Fotos_Publicadas/seed-ejemplo.jpg', 1, 25.00);
-
--- Notificaciones de bienvenida
-INSERT INTO notifications (user_id, type, title, body) VALUES
-  (1, 'system', 'Bienvenida', 'Tu cuenta fue creada.'),
-  (2, 'system', 'Bienvenida', 'Tu cuenta fue creada.');
+CREATE TABLE IF NOT EXISTS artworks
+(
+    id                BIGINT UNSIGNED               NOT NULL AUTO_INCREMENT,
+    image_name        VARCHAR(255)                  NOT NULL, -- título de la obra
+    url               VARCHAR(500)                  NOT NULL, -- key del bucket (Fotos_*/archivo.jpg)
+    price             DECIMAL(12, 2)                NOT NULL DEFAULT 0.00,
+    is_available      TINYINT(1)                    NOT NULL DEFAULT 1,
+    acquisition_type  ENUM ('uploaded','purchased') NOT NULL DEFAULT 'uploaded',
+    original_owner_id BIGINT UNSIGNED               NOT NULL,
+    current_owner_id  BIGINT UNSIGNED               NOT NULL,
+    created_at        TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_artworks__url (url),                        -- evita repetir la misma imagen publicada
+    KEY ix_artworks__available_created (is_available, created_at DESC),
+    KEY ix_artworks__owner_current (current_owner_id, created_at DESC),
+    CONSTRAINT fk_artworks__orig_user FOREIGN KEY (original_owner_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_artworks__curr_user FOREIGN KEY (current_owner_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_artworks__price_nonneg CHECK (price >= 0),
+    CONSTRAINT chk_artworks__availability CHECK (
+        (acquisition_type = 'uploaded' AND is_available IN (0, 1)) OR
+        (acquisition_type = 'purchased' AND is_available IN (0))
+        )
+) ENGINE = InnoDB;
 
 -- =========================
--- 5) Consultas útiles (referencia)
+-- Tabla: notifications
 -- =========================
--- Obras disponibles (vendedor actual y precio)
--- SELECT a.id, a.url, a.price, u.username AS seller
--- FROM artworks a
--- JOIN users u ON u.id = a.current_owner_id
--- WHERE a.is_available = 1
--- ORDER BY a.price ASC;
-
--- Inventario de un usuario
--- SELECT a.id, a.url, a.is_available, a.price
--- FROM artworks a
--- WHERE a.current_owner_id = 2;
+CREATE TABLE IF NOT EXISTS notifications
+(
+    id         BIGINT UNSIGNED                   NOT NULL AUTO_INCREMENT,
+    user_id    BIGINT UNSIGNED                   NOT NULL,
+    type       ENUM ('purchase','sale','system') NOT NULL DEFAULT 'system',
+    title      VARCHAR(200)                      NOT NULL,
+    body       VARCHAR(1000)                     NOT NULL,
+    is_read    TINYINT(1)                        NOT NULL DEFAULT 0,
+    created_at TIMESTAMP                         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY ix_notifications__user_created (user_id, created_at DESC),
+    CONSTRAINT fk_notifications__user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
