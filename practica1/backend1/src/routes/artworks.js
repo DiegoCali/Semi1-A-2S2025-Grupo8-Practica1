@@ -84,7 +84,7 @@ router.get("/created", async (req, res) => {
                 is_available: !!a.is_available,
                 acquisition_type: a.acquisition_type, // 'uploaded' | 'purchased'
                 original_owner_id: a.original_owner_id,
-                original_owner_full_name: a.original_owner_full_name,
+                seller: a.original_owner_full_name,
                 current_owner_id: a.current_owner_id,
                 current_owner_full_name: a.current_owner_full_name,
                 created_at: a.created_at,
