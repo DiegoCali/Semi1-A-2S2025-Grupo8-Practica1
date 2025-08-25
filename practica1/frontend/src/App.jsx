@@ -5,6 +5,7 @@ import MiGaleria from './Pages/mi-galeria'
 import Perfil from './Pages/perfil'
 import EditarPerfil from './Pages/EditarPerfil'
 import CargarObras from './Pages/cargarObras'
+import Compras from './Pages/compras'
 function App() {
   return (
     <Router>
@@ -16,6 +17,7 @@ function App() {
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/editar-perfil" element={<EditarPerfil />} />
         <Route path="/cargar-obras" element={<CargarObras />} />
+        <Route path="/compras" element={<Compras />} />
       </Routes>
     </Router>
   )

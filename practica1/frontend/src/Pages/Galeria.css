@@ -377,6 +377,18 @@
     letter-spacing: 1px !important;
 }
 
+.btn-mi-obra {
+    background: #fff3cd !important;
+    color: #856404 !important;
+    border: 2px solid #ffeaa7 !important;
+    padding: 18px 35px !important;
+    border-radius: 4px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    cursor: not-allowed !important;
+    letter-spacing: 1px !important;
+}
+
 /* Responsive del modal */
 @media (max-width: 768px) {
     .modal-content {
@@ -402,7 +414,7 @@
         font-size: 2rem !important;
     }
     
-    .btn-comprar, .btn-no-disponible {
+    .btn-comprar, .btn-no-disponible, .btn-mi-obra {
         padding: 15px 25px !important;
         font-size: 0.95rem !important;
     }

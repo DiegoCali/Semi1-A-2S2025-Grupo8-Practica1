@@ -16,6 +16,11 @@ export default function EditarPerfil() {
         photo: null
     });
 
+    // Estado para manejar contraseñas
+    const [passwords, setPasswords] = useState({
+        current_password: ''
+    });
+
 
 
     // Estados de la UI
@@ -30,8 +35,14 @@ export default function EditarPerfil() {
     // Cargar datos del usuario al iniciar
     useEffect(() => {
         cargarDatosUsuario();
-        cargarFotoUsuario();
     }, []);
+
+    // Cargar foto cuando los datos del usuario estén listos
+    useEffect(() => {
+        if (userData?.id) {
+            cargarFotoUsuario();
+        }
+    }, [userData]);
 
     const cargarDatosUsuario = async () => {
         try {
@@ -51,10 +62,6 @@ export default function EditarPerfil() {
                     email: response.data.email || '',
                     photo: null
                 });
-                
-                if (response.data.photo_url) {
-                    setImagenPreview(response.data.photo_url);
-                }
             }
         } catch (error) {
             console.error('Error cargando datos:', error);
@@ -65,17 +72,44 @@ export default function EditarPerfil() {
     const cargarFotoUsuario = async () => {
         try {
             const user = JSON.parse(localStorage.getItem('user'));
-            if (!user?.id) return;
+            if (!user?.id) {
+                console.log('No hay usuario en localStorage');
+                return;
+            }
 
+            console.log('Cargando foto para usuario:', user.id);
+
+            // Primero verificar si el usuario tiene photo_url en localStorage
+            if (user.photo_url) {
+                console.log('Foto encontrada en localStorage:', user.photo_url);
+                setImagenPreview(user.photo_url);
+                return;
+            }
+
+            // Si no tiene foto en localStorage, intentar cargar desde la API
+            console.log('Buscando foto en API...');
             const result = await userService.getUserPhoto(user.id);
 
-            if (result.success) {
+            if (result.success && result.url) {
+                console.log('Foto cargada desde API:', result.url);
                 setImagenPreview(result.url);
+                
+                // Actualizar localStorage con la foto
+                const updatedUser = { ...user, photo_url: result.url };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
             } else {
-                console.error('Error al cargar la foto del usuario:', result.error);
+                // No mostrar error si simplemente no tiene foto (404 es normal)
+                console.log('Usuario no tiene foto de perfil (esto es normal)');
+                setImagenPreview(null);
             }
         } catch (error) {
-            console.error('Error al cargar la foto del usuario:', error);
+            // No mostrar error si es 404 (usuario sin foto)
+            if (error.message?.includes('404') || error.status === 404) {
+                console.log('Usuario no tiene foto de perfil (esto es normal)');
+                setImagenPreview(null);
+            } else {
+                console.error('Error al cargar la foto del usuario:', error);
+            }
         }
     };
 
@@ -133,8 +167,12 @@ export default function EditarPerfil() {
     const cerrarModal = () => {
         setModalConfirmacion(false);
         setCampoACambiar('');
-         setError('');
+        setError('');
         setSuccess('');
+        // Limpiar contraseña cuando se cierre el modal
+        setPasswords({
+            current_password: ''
+        });
     };
 
     // Confirmar cambios
@@ -221,8 +259,16 @@ export default function EditarPerfil() {
                         <div className="seccion-foto">
                             <h2>Foto de Perfil</h2>
                             <div className="foto-container">
+                                {/* Debug temporal - se puede remover después */}
+                                {console.log('Estado imagenPreview al renderizar:', imagenPreview)}
                                 {imagenPreview ? (
-                                    <img src={imagenPreview} alt="Foto de perfil" className="foto-preview" />
+                                    <img 
+                                        src={imagenPreview} 
+                                        alt="Foto de perfil" 
+                                        className="foto-preview"
+                                        onLoad={() => console.log('Imagen cargada exitosamente:', imagenPreview)}
+                                        onError={() => console.error('Error cargando imagen:', imagenPreview)}
+                                    />
                                 ) : (
                                     <div className="avatar-iniciales">
                                         {obtenerIniciales(userData?.full_name || 'Usuario')}

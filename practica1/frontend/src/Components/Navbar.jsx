@@ -95,7 +95,7 @@ export default function Navbar() {
                     <Link to="/galeria" className="nav-link">Galería</Link>
                     <Link to="/mi-galeria" className="nav-link">Mis Obras</Link>
                     <Link to="/cargar-obras" className="nav-link">Subir Obra</Link>
-                    <Link to="/mis-compras" className="nav-link">Mis Compras</Link>
+                    <Link to="/compras" className="nav-link">Mis Compras</Link>
                 </div>
 
                 {/* Sección de usuario */}

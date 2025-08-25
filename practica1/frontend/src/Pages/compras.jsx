@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../Components/Navbar';
 import { artworkService } from '../service/artworks';
-import './MiGaleria.css';
+import './compras.css';
 
-export default function MiGaleria() {
+export default function Compras() {
     // Estado para manejar el modal
     const [modalAbierto, setModalAbierto] = useState(false);
     const [obraSeleccionada, setObraSeleccionada] = useState(null);
-    const [obrasCreadas, setObrasCreadas] = useState([]);
+    const [obrasCompradas, setObrasCompradas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -22,46 +22,34 @@ export default function MiGaleria() {
         setObraSeleccionada(null);
     };
 
-    // Función para cargar obras creadas
-    const cargarObrasCreadas = async () => {
+    // Función para cargar obras compradas
+    const cargarObrasCompradas = async () => {
         try {
             setLoading(true);
             setError(null);
             
             // Obtener userId del localStorage
             const userData = JSON.parse(localStorage.getItem('user'));
-            console.log('User data en mi-galeria:', userData);
-            
-            // El objeto user tiene la propiedad 'id', no 'user_id'
-            let userId = null;
-            if (userData) {
-                userId = userData.id; // La propiedad correcta es 'id'
-                console.log('userId encontrado:', userId);
-            }
-            
-            if (!userData || !userId) {
-                console.log('No hay userData o userId válido');
-                console.log('userData:', userData);
+            console.log('User data:', userData);
+
+            if (!userData || !userData.id) {
                 setError('Usuario no autenticado');
                 setLoading(false);
                 return;
             }
 
-            console.log('Llamando a getMyCreatedArtworks con userId:', userId);
-            const result = await artworkService.getMyCreatedArtworks(userId);
-            console.log('Resultado de getMyCreatedArtworks:', result);
+            const result = await artworkService.getMyPurchasedArtworks(userData.id);
             
             if (result.success) {
-                console.log('Obras creadas recibidas:', result.data);
-                console.log('Cantidad de obras creadas:', result.data.length);
-                setObrasCreadas(result.data);
+                console.log('Obras compradas recibidas:', result.data);
+                console.log('Cantidad de obras compradas:', result.data.length);
+                setObrasCompradas(result.data);
             } else {
-                console.log('Error en result:', result.error);
-                setError(result.error || 'Error al cargar tus obras');
+                setError(result.error || 'Error al cargar las obras compradas');
             }
         } catch (err) {
-            console.error('Error al cargar obras creadas:', err);
-            setError('Error al cargar tus obras');
+            console.error('Error al cargar obras compradas:', err);
+            setError('Error al cargar las obras compradas');
         } finally {
             setLoading(false);
         }
@@ -69,7 +57,7 @@ export default function MiGaleria() {
 
     // Cargar obras al montar el componente
     useEffect(() => {
-        cargarObrasCreadas();
+        cargarObrasCompradas();
     }, []);
 
     return (
@@ -77,18 +65,18 @@ export default function MiGaleria() {
             <Navbar />
             <main className="main-content">
                 <section className="content-section">
-                    <h1 className="page-title">Mi Galería</h1>
+                    <h1 className="page-title">Mis Compras</h1>
                     
                     {loading && (
                         <div className="loading-message">
-                            <p>Cargando tus obras creadas...</p>
+                            <p>Cargando tus obras compradas...</p>
                         </div>
                     )}
                     
                     {error && (
                         <div className="error-message">
                             <p>Error: {error}</p>
-                            <button onClick={cargarObrasCreadas} className="retry-button">
+                            <button onClick={cargarObrasCompradas} className="retry-button">
                                 Reintentar
                             </button>
                         </div>
@@ -96,7 +84,7 @@ export default function MiGaleria() {
                     
                     {!loading && !error && (
                         <div className="obras-grid">
-                            {obrasCreadas.map((obra) => (
+                            {obrasCompradas.map((obra) => (
                                 <div
                                     key={obra.id}
                                     className="artwork-card"
@@ -107,7 +95,7 @@ export default function MiGaleria() {
                                 >
                                     {/* Badge de propiedad */}
                                     <div className="ownership-badge">
-                                        MI CREACIÓN
+                                        COMPRADA
                                     </div>
 
                                     {/* Overlay de información */}
@@ -119,7 +107,7 @@ export default function MiGaleria() {
                                             {obra.autor} • {obra.anio}
                                         </div>
                                         <div className="card-price">
-                                            ${obra.precio} {obra.disponible ? '(Disponible)' : '(Vendida)'}
+                                            ${obra.precio}
                                         </div>
                                     </div>
                                 </div>
@@ -127,16 +115,16 @@ export default function MiGaleria() {
                         </div>
                     )}
                     
-                    {!loading && !error && obrasCreadas.length === 0 && (
+                    {!loading && !error && obrasCompradas.length === 0 && (
                         <div className="empty-collection">
-                            <h3>Aún no has creado ninguna obra</h3>
-                            <p>Ve a "Cargar Obras" para subir tu primera creación artística</p>
+                            <h3>Aún no tienes obras compradas</h3>
+                            <p>Explora la galería principal para adquirir tu primera obra de arte</p>
                         </div>
                     )}
                 </section>
             </main>
 
-            {/* Modal para mostrar detalles de la obra */}
+            {/* Modal para mostrar detalles de la obra (SIN opción de compra) */}
             {modalAbierto && obraSeleccionada && (
                 <div className="modal-overlay" onClick={cerrarModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -151,25 +139,18 @@ export default function MiGaleria() {
                         {/* Información de la obra */}
                         <div className="modal-info">
                             <h2 className="modal-titulo">{obraSeleccionada.titulo}</h2>
-                            <p className="modal-autor">Creador: {obraSeleccionada.autor}</p>
+                            <p className="modal-autor">Autor: {obraSeleccionada.autor}</p>
                             <p className="modal-anio">Año: {obraSeleccionada.anio}</p>
-                            <p className="modal-precio">Precio: ${obraSeleccionada.precio}</p>
-                            <p className="modal-disponibilidad">
-                                Estado: {obraSeleccionada.disponible ? 'Disponible para venta' : 'Ya vendida'}
-                            </p>
+                            <p className="modal-precio">Precio pagado: ${obraSeleccionada.precio}</p>
                             
                             {/* Estado de propiedad */}
                             <div className="modal-propiedad">
-                                TU CREACIÓN ORIGINAL
+                                OBRA COMPRADA - DE TU PROPIEDAD
                             </div>
                             
                             {/* Información adicional */}
                             <div className="obra-info-adicional">
-                                <p>Esta es una de tus creaciones originales. 
-                                {obraSeleccionada.disponible 
-                                    ? ' Está disponible para que otros usuarios la puedan adquirir.' 
-                                    : ' Ya ha sido vendida a otro usuario.'}
-                                </p>
+                                <p>Esta obra fue adquirida mediante compra y ahora forma parte de tu colección personal.</p>
                             </div>
                         </div>
                     </div>

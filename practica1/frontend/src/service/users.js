@@ -158,12 +158,23 @@ export const userService = {
             const response = await fetch(`${API_BASE}/users/${userId}/photo`);
 
             if (!response.ok) {
+                if (response.status === 404) {
+                    return {
+                        success: false,
+                        error: 'Usuario no tiene foto de perfil',
+                        url: null,
+                        status: 404
+                    };
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // Si la respuesta es exitosa, construir la URL de la imagen
+            const imageUrl = `${API_BASE}/users/${userId}/photo`;
+
             return {
                 success: true,
-                url: response.url,
+                url: imageUrl,
                 status: response.status
             };
         } catch (error) {

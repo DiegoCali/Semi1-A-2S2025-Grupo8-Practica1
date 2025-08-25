@@ -28,8 +28,8 @@ export default function Galeria() {
             
             if (result.success) {
                 if (result.data.length === 0) {
-                    console.log('Vacio');
-                   
+                    console.log('No hay obras disponibles');
+                    setObras([]);
                 } else {
                     console.log('Obras cargadas:', result.data);
                     setObras(result.data);
@@ -37,8 +37,7 @@ export default function Galeria() {
             } else {
                 console.error('Error del servicio:', result.error);
                 setError('Error al cargar las obras: ' + result.error);
-                // Fallback a datos de prueba
-                setObras(obrasDeArteFalsas);
+                setObras([]);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -75,7 +74,8 @@ export default function Galeria() {
 
         // Validar que no sea su propia obra
         if (obraSeleccionada.sellerId === user.id) {
-            alert('No puedes comprar tu propia obra');
+            console.log(`Intento de compra bloqueado: Usuario ${user.id} intentó comprar su propia obra ${obraSeleccionada.id}`);
+            alert(' No puedes comprar tu propia obra');
             return;
         }
 
@@ -104,6 +104,20 @@ export default function Galeria() {
                 
                 // Actualizar obra seleccionada
                 setObraSeleccionada(prev => ({ ...prev, disponible: false }));
+                
+                // Actualizar saldo en localStorage y disparar evento para navbar
+                try {
+                    const updatedUser = { ...user };
+                    const currentBalance = parseFloat(updatedUser.balance || 0);
+                    const newBalance = currentBalance - obraSeleccionada.precio;
+                    updatedUser.balance = newBalance.toString();
+                    
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    // Disparar evento para actualizar Navbar
+                    window.dispatchEvent(new CustomEvent('userUpdated'));
+                } catch (balanceError) {
+                    console.error('Error actualizando saldo local:', balanceError);
+                }
                 
                 // Recargar obras para sincronizar con el servidor
                 setTimeout(() => {
@@ -211,19 +225,34 @@ export default function Galeria() {
                             </div>
                             
                             {/* Botón de compra */}
-                            {obraSeleccionada.disponible ? (
-                                <button 
-                                    className="btn-comprar" 
-                                    onClick={comprarObra}
-                                    disabled={purchasing}
-                                >
-                                    {purchasing ? 'PROCESANDO...' : 'ADQUIRIR OBRA'}
-                                </button>
-                            ) : (
-                                <button className="btn-no-disponible" disabled>
-                                    NO DISPONIBLE
-                                </button>
-                            )}
+                            {(() => {
+                                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                                const esMiObra = obraSeleccionada.sellerId === user.id;
+                                
+                                if (esMiObra) {
+                                    return (
+                                        <button className="btn-mi-obra" disabled>
+                                            TU OBRA
+                                        </button>
+                                    );
+                                } else if (obraSeleccionada.disponible) {
+                                    return (
+                                        <button 
+                                            className="btn-comprar" 
+                                            onClick={comprarObra}
+                                            disabled={purchasing}
+                                        >
+                                            {purchasing ? 'PROCESANDO...' : 'ADQUIRIR OBRA'}
+                                        </button>
+                                    );
+                                } else {
+                                    return (
+                                        <button className="btn-no-disponible" disabled>
+                                            NO DISPONIBLE
+                                        </button>
+                                    );
+                                }
+                            })()}
                         </div>
                     </div>
                 </div>

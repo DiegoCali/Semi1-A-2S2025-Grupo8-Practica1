@@ -20,36 +20,39 @@ export const artworkService = {
             const url = `${API_BASE}/artworks`;
             
             const response = await fetch(url);
-            
+            console.log('Response de getAllArtworks:', response);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const artworks = await response.json();
+            console.log('All artworks raw data:', artworks);
             
-            // Transformar usando EXACTAMENTE las variables que devuelve laf API
+            // Transformar usando los campos reales de la API
             const transformedArtworks = artworks.map(artwork => ({
-                // IDs y datos principales
+                // IDs y datos principales usando campos reales
                 id: artwork.id,
-                precio: artwork.price,
-                disponible: !!artwork.is_available, // Convertir a boolean explícitamente
+                precio: parseFloat(artwork.price || 0),
+                disponible: !!artwork.is_available,
                 
-                // URLs de imagen
-                imagen: artwork.public_url,
-                urlOriginal: artwork.url,
+                // URLs de imagen usando campos reales
+                imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                urlOriginal: artwork.url_key,
                 
-                // Información del vendedor  
+                // Información del vendedor usando campos reales
                 sellerId: artwork.seller_id,
-                vendedor: artwork.seller, // Usar 'seller' como vendedor
+                vendedor: artwork.seller,
                 
-                // Campos calculados para UI
-                titulo: artwork.title || `Obra de ${artwork.seller}`,
-                autor: artwork.seller, // El vendedor actúa como "autor"
-                anio: artwork.year || new Date().getFullYear(),
+                // Campos calculados para UI usando campos reales
+                titulo: artwork.name || artwork.image_name || `Obra de ${artwork.seller}`,
+                autor: artwork.seller,
+                anio: new Date().getFullYear(), // No hay campo año en la API
                 
-                // Debug: mantener datos originales
+                // Debug: mantener datos originales reales
                 _original: {
                     id: artwork.id,
-                    url: artwork.url,
+                    name: artwork.name,
+                    image_name: artwork.image_name,
+                    url_key: artwork.url_key,
                     price: artwork.price,
                     is_available: artwork.is_available,
                     seller_id: artwork.seller_id,
@@ -78,37 +81,52 @@ export const artworkService = {
     async getUserArtworks(userId) {
         try {
             const response = await fetch(`${API_BASE}/artworks/mine?userId=${userId}`);
-            
+            console.log('Response de getUserArtworks:', response);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const artworks = await response.json();
+            console.log('Artworks raw data:', artworks);
             
-            // Transformar usando EXACTAMENTE las variables de /artworks/mine
-            const transformedArtworks = artworks.map(artwork => ({
-                // Campos principales de la API
-                id: artwork.id,
-                precio: artwork.price,
-                disponible: !!artwork.is_available,
-                imagen: artwork.public_url,
-                tipoAdquisicion: artwork.acquisition_type, // "uploaded" o "purchased"
+            // Transformar usando los campos reales de la API
+            const transformedArtworks = artworks.map(artwork => {
+                console.log('Transformando artwork:', artwork);
                 
-                // Campos calculados para UI
-                titulo: artwork.title || `Mi Obra #${artwork.id}`,
-                autor: artwork.acquisition_type === 'uploaded' ? 'Creada por mí' : 'Adquirida',
-                anio: artwork.year || new Date().getFullYear(),
-                
-                // Debug: mantener datos originales  
-                _original: {
+                return {
+                    // Campos principales usando la estructura REAL de la API
                     id: artwork.id,
-                    url: artwork.url,
-                    price: artwork.price,
-                    is_available: artwork.is_available,
-                    acquisition_type: artwork.acquisition_type,
-                    public_url: artwork.public_url
-                }
-            }));
+                    precio: parseFloat(artwork.price || 0),
+                    disponible: !!artwork.is_available,
+                    imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                    tipoAdquisicion: artwork.acquisition_type, // ✅ USAR EL CAMPO REAL "acquisition_type"
+                    sellerId: artwork.seller_id,
+                    urlKey: artwork.url_key,
+                    
+                    // Campos calculados para UI usando los campos reales
+                    titulo: artwork.name || artwork.image_name || `Obra #${artwork.id}`,
+                    nombreImagen: artwork.image_name,
+                    autor: artwork.seller || 'Autor desconocido',
+                    vendedor: artwork.seller,
+                    anio: new Date().getFullYear(), // No hay campo año en la API
+                    
+                    // Debug: mantener datos originales reales con TODOS los campos
+                    _original: {
+                        id: artwork.id,
+                        name: artwork.name,
+                        image_name: artwork.image_name,
+                        url_key: artwork.url_key,
+                        price: artwork.price,
+                        is_available: artwork.is_available,
+                        acquisition_type: artwork.acquisition_type,
+                        seller_id: artwork.seller_id,
+                        seller: artwork.seller,
+                        public_url: artwork.public_url
+                    }
+                };
+            });
+            
+            console.log('Artworks transformados:', transformedArtworks);
             
             return {
                 success: true,
@@ -118,6 +136,66 @@ export const artworkService = {
             
         } catch (error) {
             console.error('Error al obtener mis artworks:', error);
+            return {
+                success: false,
+                error: error.message,
+                data: []
+            };
+        }
+    },
+
+    // Método específico para obtener solo obras creadas (donde soy el autor original)
+    async getMyCreatedArtworks(userId) {
+        try {
+            const result = await this.getUserArtworks(userId);
+            if (result.success) {
+                // Filtrar por obras donde SOY EL AUTOR (seller_id === userId)
+                // Sin importar si están vendidas o no
+                const createdArtworks = result.data.filter(artwork => {
+                    const isMyCreation = artwork.sellerId === parseInt(userId);
+                    console.log(`Obra ${artwork.id}: sellerId=${artwork.sellerId}, userId=${userId}, isMyCreation=${isMyCreation}`);
+                    return isMyCreation;
+                });
+                
+                console.log(`Obras creadas por mí: ${createdArtworks.length}`);
+                return {
+                    ...result,
+                    data: createdArtworks
+                };
+            }
+            return result;
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                data: []
+            };
+        }
+    },
+
+    // Método específico para obtener solo obras compradas (de otros autores)
+    async getMyPurchasedArtworks(userId) {
+        try {
+            const result = await this.getUserArtworks(userId);
+            if (result.success) {
+                // Filtrar por obras donde NO SOY EL AUTOR (seller_id !== userId) 
+                // pero están en mi colección (acquisition_type === 'purchased')
+                const purchasedArtworks = result.data.filter(artwork => {
+                    const isNotMyCreation = artwork.sellerId !== parseInt(userId);
+                    const isPurchased = artwork.tipoAdquisicion === 'purchased';
+                    const shouldShow = isNotMyCreation && isPurchased;
+                    console.log(`Obra ${artwork.id}: sellerId=${artwork.sellerId}, userId=${userId}, isNotMyCreation=${isNotMyCreation}, isPurchased=${isPurchased}, shouldShow=${shouldShow}`);
+                    return shouldShow;
+                });
+                
+                console.log(`Obras compradas por mí: ${purchasedArtworks.length}`);
+                return {
+                    ...result,
+                    data: purchasedArtworks
+                };
+            }
+            return result;
+        } catch (error) {
             return {
                 success: false,
                 error: error.message,
