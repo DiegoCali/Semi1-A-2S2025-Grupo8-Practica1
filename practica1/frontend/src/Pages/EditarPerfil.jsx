@@ -11,8 +11,6 @@ export default function EditarPerfil() {
     const [formData, setFormData] = useState({
         username: '',
         full_name: '',
-        phone: '',
-        email: '',
         photo: null
     });
 
@@ -35,14 +33,8 @@ export default function EditarPerfil() {
     // Cargar datos del usuario al iniciar
     useEffect(() => {
         cargarDatosUsuario();
+        cargarFotoUsuario();
     }, []);
-
-    // Cargar foto cuando los datos del usuario estén listos
-    useEffect(() => {
-        if (userData?.id) {
-            cargarFotoUsuario();
-        }
-    }, [userData]);
 
     const cargarDatosUsuario = async () => {
         try {
@@ -58,10 +50,11 @@ export default function EditarPerfil() {
                 setFormData({
                     username: response.data.username || '',
                     full_name: response.data.full_name || '',
-                    phone: response.data.phone || '',
-                    email: response.data.email || '',
                     photo: null
                 });
+                
+                // Importante: Actualizar también localStorage con datos frescos
+                localStorage.setItem('user', JSON.stringify(response.data));
             }
         } catch (error) {
             console.error('Error cargando datos:', error);
@@ -71,42 +64,28 @@ export default function EditarPerfil() {
 
     const cargarFotoUsuario = async () => {
         try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (!user?.id) {
-                console.log('No hay usuario en localStorage');
-                return;
-            }
+            const userData = localStorage.getItem('user');
+            if (!userData) return;
 
-            console.log('Cargando foto para usuario:', user.id);
-
-            // Primero verificar si el usuario tiene photo_url en localStorage
-            if (user.photo_url) {
-                console.log('Foto encontrada en localStorage:', user.photo_url);
-                setImagenPreview(user.photo_url);
-                return;
-            }
-
-            // Si no tiene foto en localStorage, intentar cargar desde la API
-            console.log('Buscando foto en API...');
+            const user = JSON.parse(userData);
             const result = await userService.getUserPhoto(user.id);
 
-            if (result.success && result.url) {
-                console.log('Foto cargada desde API:', result.url);
-                setImagenPreview(result.url);
+            if (result.success) {
+                // Actualizar el estado userData con la foto (igual que en Perfil.jsx)
+                setUserData((prev) => ({ ...prev, photo_url: result.url }));
                 
-                // Actualizar localStorage con la foto
+                // También actualizar localStorage
                 const updatedUser = { ...user, photo_url: result.url };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
+                
+                console.log('Foto cargada exitosamente:', result.url);
             } else {
-                // No mostrar error si simplemente no tiene foto (404 es normal)
                 console.log('Usuario no tiene foto de perfil (esto es normal)');
-                setImagenPreview(null);
             }
         } catch (error) {
             // No mostrar error si es 404 (usuario sin foto)
             if (error.message?.includes('404') || error.status === 404) {
                 console.log('Usuario no tiene foto de perfil (esto es normal)');
-                setImagenPreview(null);
             } else {
                 console.error('Error al cargar la foto del usuario:', error);
             }
@@ -147,7 +126,12 @@ export default function EditarPerfil() {
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setImagenPreview(event.target.result);
+                // Actualizar userData.photo_url para mostrar preview inmediatamente
+                setUserData(prev => ({
+                    ...prev,
+                    photo_url: event.target.result
+                }));
+                
                 setFormData(prev => ({
                     ...prev,
                     photo: file  // Guardamos el archivo, no la URL
@@ -199,9 +183,8 @@ export default function EditarPerfil() {
                     if (updatedUser.success) {
                         localStorage.setItem('user', JSON.stringify(updatedUser.data));
                         setUserData(updatedUser.data);
-                        if (updatedUser.data.photo_url) {
-                            setImagenPreview(updatedUser.data.photo_url);
-                        }
+                        // La foto ya está incluida en updatedUser.data
+                        
                         // Disparar evento para actualizar Navbar
                         window.dispatchEvent(new CustomEvent('userUpdated'));
                         
@@ -259,15 +242,15 @@ export default function EditarPerfil() {
                         <div className="seccion-foto">
                             <h2>Foto de Perfil</h2>
                             <div className="foto-container">
-                                {/* Debug temporal - se puede remover después */}
-                                {console.log('Estado imagenPreview al renderizar:', imagenPreview)}
-                                {imagenPreview ? (
+                                {/* Usar userData.photo_url igual que en Perfil.jsx */}
+                                {console.log('Estado userData.photo_url:', userData?.photo_url)}
+                                {userData?.photo_url ? (
                                     <img 
-                                        src={imagenPreview} 
+                                        src={userData.photo_url} 
                                         alt="Foto de perfil" 
                                         className="foto-preview"
-                                        onLoad={() => console.log('Imagen cargada exitosamente:', imagenPreview)}
-                                        onError={() => console.error('Error cargando imagen:', imagenPreview)}
+                                        onLoad={() => console.log('Imagen cargada exitosamente:', userData.photo_url)}
+                                        onError={() => console.error('Error cargando imagen:', userData.photo_url)}
                                     />
                                 ) : (
                                     <div className="avatar-iniciales">

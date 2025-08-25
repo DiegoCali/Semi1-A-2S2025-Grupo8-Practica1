@@ -14,7 +14,7 @@ export const artworkService = {
     },
 
     // Obtener todas las obras con paginación opcional
-    async getAllArtworks(limit = 20, offset = 0) {
+    async getAllArtworks(limit = 50, offset = 0) {
         try {
             // Probar primero sin parámetros para debugging
             const url = `${API_BASE}/artworks`;
@@ -145,26 +145,65 @@ export const artworkService = {
     },
 
     // Método específico para obtener solo obras creadas (donde soy el autor original)
-    async getMyCreatedArtworks(userId) {
+    async getMyCreatedArtworks(userId, limit = 50, offset = 0) {
         try {
-            const result = await this.getUserArtworks(userId);
-            if (result.success) {
-                // Filtrar por obras donde SOY EL AUTOR (seller_id === userId)
-                // Sin importar si están vendidas o no
-                const createdArtworks = result.data.filter(artwork => {
-                    const isMyCreation = artwork.sellerId === parseInt(userId);
-                    console.log(`Obra ${artwork.id}: sellerId=${artwork.sellerId}, userId=${userId}, isMyCreation=${isMyCreation}`);
-                    return isMyCreation;
-                });
-                
-                console.log(`Obras creadas por mí: ${createdArtworks.length}`);
-                return {
-                    ...result,
-                    data: createdArtworks
-                };
+            const response = await fetch(`${API_BASE}/artworks/created?userId=${userId}&limit=${limit}&offset=${offset}`);
+            console.log('Response de getMyCreatedArtworks:', response);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return result;
+            
+            const artworks = await response.json();
+            console.log('Created artworks raw data:', artworks);
+            
+            // Transformar usando los campos reales de la API
+            const transformedArtworks = artworks.map(artwork => {
+                console.log('Transformando created artwork:', artwork);
+                
+                return {
+                    // Campos principales usando la estructura REAL de la API
+                    id: artwork.id,
+                    precio: parseFloat(artwork.price || 0),
+                    disponible: !!artwork.is_available,
+                    imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                    tipoAdquisicion: artwork.acquisition_type,
+                    sellerId: artwork.seller_id,
+                    urlKey: artwork.url_key,
+                    
+                    // Campos calculados para UI
+                    titulo: artwork.name || artwork.image_name || `Obra #${artwork.id}`,
+                    nombreImagen: artwork.image_name,
+                    autor: artwork.seller || 'Autor desconocido',
+                    vendedor: artwork.seller,
+                    anio: new Date().getFullYear(),
+                    
+                    // Debug: mantener datos originales
+                    _original: {
+                        id: artwork.id,
+                        name: artwork.name,
+                        image_name: artwork.image_name,
+                        url_key: artwork.url_key,
+                        price: artwork.price,
+                        is_available: artwork.is_available,
+                        acquisition_type: artwork.acquisition_type,
+                        seller_id: artwork.seller_id,
+                        seller: artwork.seller,
+                        public_url: artwork.public_url
+                    }
+                };
+            });
+            
+            console.log(`Obras creadas obtenidas directamente: ${transformedArtworks.length}`);
+            
+            return {
+                success: true,
+                data: transformedArtworks,
+                status: response.status
+            };
+            
         } catch (error) {
+            console.error('Error al obtener obras creadas:', error);
             return {
                 success: false,
                 error: error.message,
