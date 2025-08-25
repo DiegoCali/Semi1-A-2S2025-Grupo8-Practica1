@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../Components/Navbar';
 import { artworkService } from '../service/artworks';
+import { notificationHelpers } from '../utils/notificationHelpers';
 import './Galeria.css';
 
 export default function Galeria() {
@@ -107,6 +108,11 @@ export default function Galeria() {
             if (result.success && result.data && result.data.ok) {
                 mostrarNotificacion(`¡Compra exitosa! Has adquirido "${obraSeleccionada.titulo}" por $${obraSeleccionada.precio.toLocaleString()}`, 'success');
                 
+                // Actualizar notificaciones inmediatamente
+                setTimeout(() => {
+                    notificationHelpers.refreshNotifications();
+                }, 1000);
+                
                 // Actualizar el estado local de la obra
                 setObras(prevObras => 
                     prevObras.map(obra => 
@@ -197,7 +203,7 @@ export default function Galeria() {
                                             {obra.autor} • {obra.anio}
                                         </div>
                                         <div className="card-price">
-                                            ${obra.precio?.toLocaleString()}
+                                            Q.{obra.precio?.toLocaleString()}
                                         </div>
                                     </div>
                                 </div>

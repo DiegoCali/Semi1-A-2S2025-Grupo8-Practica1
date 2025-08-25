@@ -1,4 +1,5 @@
-const API_BASE = 'https://h8rtvvc7-3000.use2.devtunnels.ms';
+
+const API_BASE = import.meta.env.VITE_BACKEND_HOST;
 
 export const userService = {
     // Obtener información completa del usuario

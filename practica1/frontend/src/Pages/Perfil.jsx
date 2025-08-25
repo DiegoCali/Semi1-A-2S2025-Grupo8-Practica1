@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import { userService } from '../service/users';
+import { notificationHelpers } from '../utils/notificationHelpers';
 import './Perfil.css';
 
 export default function Perfil() {
@@ -34,12 +35,18 @@ export default function Perfil() {
             const result = await userService.getUserById(user.id);
             
             if (result.success) {
-                setUsuario(result.data);
-                // Actualizar localStorage con datos frescos
+                // Verificar si ya hay foto cargada desde localStorage
+                const cachedPhoto = localStorage.getItem('photo');
+                const updatedUser = {
+                    ...result.data,
+                    photo_url: cachedPhoto || result.data.photo_url
+                };
+                
+                setUsuario(updatedUser);
                 localStorage.setItem('user', JSON.stringify(result.data));
             } else {
                 setError('Error al cargar datos del usuario');
-                setUsuario(user); // Usar datos del localStorage como fallback
+                setUsuario(user); 
             }
         } catch (error) {
             console.error('Error:', error);
@@ -55,9 +62,19 @@ export default function Perfil() {
             if (!userData) return;
 
             const user = JSON.parse(userData);
-            const result = await userService.getUserPhoto(user.id);
+            
+            // Primero verificar si ya existe la foto en localStorage
+            const cachedPhoto = localStorage.getItem('photo');
+            console.log('Foto en caché:', cachedPhoto);
+            if (cachedPhoto) {
+                setUsuario((prev) => ({ ...prev, photo_url: cachedPhoto }));
+                return;
+            }
 
+            // Si no está en localStorage, hacer la petición al backend
+            const result = await userService.getUserPhoto(user.id);
             if (result.success) {
+                localStorage.setItem(`photo`, result.url);
                 setUsuario((prev) => ({ ...prev, photo_url: result.url }));
             } else {
                 console.error('Error al cargar la foto del usuario:', result.error);
@@ -101,6 +118,12 @@ export default function Perfil() {
             if (result.success && result.data.ok) {
                 mostrarNotificacion(`Saldo agregado exitosamente! Nuevo saldo: $${parseFloat(result.data.balance).toLocaleString()}`, 'success');
                 setMontoAumentar('');
+                
+                // Actualizar notificaciones inmediatamente
+                setTimeout(() => {
+                    notificationHelpers.refreshNotifications();
+                }, 1000);
+                
                 // Recargar datos del usuario
                 cargarDatosUsuario();
                 // Disparar evento para actualizar Navbar
@@ -175,7 +198,7 @@ export default function Perfil() {
                 {/* Formulario de saldo integrado */}
                 <div className="saldo-form">
                     <h3>Saldo Disponible</h3>
-                    <p className="saldo-actual">${parseFloat(usuario.balance || 0).toLocaleString()}</p>
+                    <p className="saldo-actual">Q.{parseFloat(usuario.balance || 0).toLocaleString()}</p>
                     
                     <p>Ingresa el monto que deseas agregar a tu saldo:</p>
                     <div className="input-group">

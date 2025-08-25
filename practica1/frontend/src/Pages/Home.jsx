@@ -10,7 +10,8 @@ function Home (){
         fullName: '',
         username: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        image: null
     });
     const [loginData, setLoginData] = useState({
         username: '',
@@ -18,15 +19,38 @@ function Home (){
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [notification, setNotification] = useState(null);
     
     const navigate = useNavigate();
+
+    // Mostrar notificación
+    const mostrarNotificacion = (mensaje, tipo) => {
+        setNotification({ mensaje, tipo });
+        
+        // Auto-hide después de 4 segundos
+        setTimeout(() => {
+            if (document.querySelector('.notification')) {
+                document.querySelector('.notification').classList.add('slide-out');
+                setTimeout(() => setNotification(null), 300);
+            }
+        }, 4000);
+    };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setPreviewUrl(URL.createObjectURL(file));
+            // Guardar el archivo en registerData
+            setRegisterData(prev => ({
+                ...prev,
+                image: file
+            }));
         } else {
             setPreviewUrl(null);
+            setRegisterData(prev => ({
+                ...prev,
+                image: null
+            }));
         }
     };
 
@@ -70,24 +94,27 @@ function Home (){
             const result = await authService.register({
                 username: registerData.username,
                 full_name: registerData.fullName,
-                password: registerData.password
+                password: registerData.password,
+                image: registerData.image
             });
 
 
             if (result.success && result.ok) {
-                alert('¡Registro exitoso! Ahora puedes iniciar sesión');
+                mostrarNotificacion('¡Registro exitoso! Ahora puedes iniciar sesión', 'success');
                 setRegisterData({
                     fullName: '',
                     username: '',
                     password: '',
-                    confirmPassword: ''
+                    confirmPassword: '',
+                    image: null
                 });
+                setPreviewUrl(null);
                 // Cambiar al panel de login
                 const container = document.getElementById('container');
                 container.classList.remove("right-panel-active");
                 setError('');
             } else {
-                setError(result.error || result.message || 'Error en el registro');
+                setError( 'Error en el registro');
             }
         } catch (error) {
             setError('Error de conexión');
@@ -126,7 +153,7 @@ function Home (){
                 setError('');
                 navigate('/galeria');
             } else {
-                setError(result.error || result.message || 'Error en el inicio de sesión');
+                setError( 'Error en el inicio de sesión');
             }
         } catch (error) {
             setError('Error de conexión');
@@ -143,10 +170,26 @@ function Home (){
         if (signUpButton && signInButton && container) {
             const handleSignUpClick = () => {
                 container.classList.add("right-panel-active");
+                // Limpiar mensajes de error y campos de login al cambiar a registro
+                setError('');
+                setLoginData({
+                    username: '',
+                    password: ''
+                });
             };
             
             const handleSignInClick = () => {
                 container.classList.remove("right-panel-active");
+                // Limpiar mensajes de error y campos de registro al cambiar a login
+                setError('');
+                setRegisterData({
+                    fullName: '',
+                    username: '',
+                    password: '',
+                    confirmPassword: '',
+                    image: null
+                });
+                setPreviewUrl(null);
             };
 
             signUpButton.addEventListener('click', handleSignUpClick);
@@ -201,7 +244,17 @@ function Home (){
                         />
                         <input type="file" onChange={handleImageChange} accept="image/*" />
                         {previewUrl && (
-                            <img src={previewUrl} alt="Vista previa" style={{ marginTop: '10px', maxWidth: '200px' }} />
+                            <div className="image-preview-container">
+                                <img 
+                                    src={previewUrl} 
+                                    alt="Vista previa" 
+                                    style={{ 
+                                        width: '100%', 
+                                        height: 'auto',
+                                        display: 'block'
+                                    }} 
+                                />
+                            </div>
                         )}
                         <button type="submit" disabled={loading}>
                             {loading ? 'Registrando...' : 'Sign Up'}
@@ -249,6 +302,17 @@ function Home (){
                     </div>
                 </div>
             </div>
+
+            {/* Notificación flotante */}
+            {notification && (
+                <div className={`notification ${notification.tipo}`}>
+                    <div className="notification-content">
+                        <span className="notification-message">
+                            {notification.mensaje}
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
