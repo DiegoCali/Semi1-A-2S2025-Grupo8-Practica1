@@ -1,197 +1,240 @@
-/* =.perfil-page {
-    min-height: 100vh;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    background-color: #000 !important;
-}======================
-   PÁGINA DE PERFIL
-   =============================== */
 
 .perfil-page {
-    height: 100vh;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    background-color: #f8f8f8;
+    height: 100vh !important;
+    background: #000 !important;
 }
 
 .main-content {
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 100px 20px 40px 20px !important;
-    box-sizing: border-box !important;
-    min-height: calc(100vh - 70px) !important;
-}
-
-.perfil-container {
-    max-width: 1000px !important;
-    margin: 0 auto !important;
-}
-
-/* Header del perfil */
-.perfil-header {
-    background: white !important;
-    border-radius: 12px !important;
-    padding: 40px !important;
-    margin-bottom: 30px !important;
+    background: #000 !important;
+    height: 100vh !important;
+    padding: 100px 20px 40px 40px !important;
     display: flex !important;
-    gap: 30px !important;
+    flex-direction: column !important;
     align-items: center !important;
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.15) !important;
+    gap: 40px !important;
+}
+
+/* Perfil Header - Solo info esencial */
+.perfil-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 30px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.foto-usuario {
+    width: 120px !important;
+    height: 120px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    border: 4px solid #fff !important;
+    background: #333 !important;
 }
 
 .foto-usuario img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #f0f0f0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
 }
 
 .info-usuario {
-    flex: 1;
+    color: white !important;
 }
 
 .nombre-completo {
-    font-size: 2.2rem;
-    font-weight: 600;
-    color: #000;
-    margin: 0 0 8px 0;
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+    margin-bottom: 8px !important;
 }
 
 .username {
-    font-size: 1.1rem;
-    color: #666;
-    margin: 0 0 6px 0;
-    font-weight: 400;
+    font-size: 1.2rem !important;
+    color: #ccc !important;
+    font-weight: 400 !important;
+    margin: 0 !important;
 }
 
-.email {
-    font-size: 1rem;
-    color: #888;
-    margin: 0 0 12px 0;
-}
-
-.fecha-registro {
-    font-size: 0.9rem;
-    color: #aaa;
-    margin: 0;
-}
-
-/* Estadísticas - SOLO SALDO */
-.perfil-stats {
-    display: flex !important;
-    justify-content: center !important;
-    margin-bottom: 40px !important;
-}
-
-.stat-card {
+/* Formulario de Saldo - Integrado */
+.saldo-form {
     background: white !important;
+    padding: 40px !important;
     border-radius: 12px !important;
-    padding: 30px !important;
     text-align: center !important;
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.15) !important;
-    max-width: 400px !important;
+    max-width: 800px !important;
     width: 100% !important;
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1) !important;
+    margin-bottom: 25px !important;
 }
 
-.stat-card h3 {
-    font-size: 1.1rem;
-    color: #666;
-    margin: 0 0 15px 0;
-    font-weight: 500;
+.saldo-form h3 {
+    color: #333 !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 15px !important;
+    font-weight: 600 !important;
 }
 
-.saldo-amount {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #000;
-    margin: 0 0 20px 0;
+.saldo-actual {
+    font-size: 3rem !important;
+    font-weight: 800 !important;
+    color: #000 !important;
+    margin-bottom: 30px !important;
 }
 
-.obras-count {
-    font-size: 3rem;
-    font-weight: 700;
-    color: #000;
-    margin: 0 0 20px 0;
+.saldo-form > p {
+    color: #666 !important;
+    margin-bottom: 20px !important;
+    font-weight: 500 !important;
 }
 
-.btn-aumentar, .btn-ver-obras {
-    background: #000;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: background-color 0.3s ease;
+.input-group {
+    display: flex !important;
+    align-items: center !important;
+    background: #f8f9fa !important;
+    border: 2px solid #ddd !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    padding: 0 15px !important;
 }
 
-.btn-aumentar:hover, .btn-ver-obras:hover {
-    background: #333;
+.input-monto {
+    flex: 1 !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 15px 10px !important;
+    font-size: 1.1rem !important;
+    color: #333 !important;
+    outline: none !important;
 }
 
-/* Acciones principales */
-.perfil-actions {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 40px;
-    justify-content: center;
+.input-monto::placeholder {
+    color: #999 !important;
 }
 
-.btn-action {
-    padding: 15px 30px;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s ease;
-    min-width: 160px;
+.montos-sugeridos {
+    margin-bottom: 30px !important;
 }
 
-.btn-action.primary {
-    background: #000;
-    color: white;
+.montos-sugeridos p {
+    color: #666 !important;
+    margin-bottom: 15px !important;
+    font-weight: 500 !important;
 }
 
-.btn-action.primary:hover {
-    background: #333;
+.sugeridos-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
 }
 
-.btn-action.secondary {
-    background: white;
-    color: #000;
-    border: 2px solid #000;
+.btn-sugerido {
+    padding: 12px 20px !important;
+    background: #f8f9fa !important;
+    border: 2px solid #ddd !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    transition: all 0.3s ease !important;
 }
 
-.btn-action.secondary:hover {
-    background: #f0f0f0;
+.btn-sugerido:hover {
+    background: #e9ecef !important;
+    border-color: #333 !important;
 }
 
-/* Obras recientes */
-.obras-recientes {
-    background: white;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+.btn-sugerido.active {
+    background: #000 !important;
+    color: white !important;
+    border-color: #000 !important;
 }
 
-.obras-recientes h2 {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #000;
-    margin: 0 0 25px 0;
-    text-align: center;
+.form-actions {
+    display: flex !important;
+    gap: 15px !important;
+    justify-content: center !important;
 }
 
+.btn-confirmar {
+    background: #000 !important;
+    color: white !important;
+    border: none !important;
+    padding: 15px 30px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    cursor: pointer !important;
+    transition: background 0.3s ease !important;
+    min-width: 160px !important;
+}
+
+.btn-confirmar:hover {
+    background: #333 !important;
+}
+
+.btn-confirmar:disabled {
+    background: #ccc !important;
+    cursor: not-allowed !important;
+}
+
+.btn-cancelar {
+    background: white !important;
+    color: #333 !important;
+    border: 2px solid #ddd !important;
+    padding: 15px 30px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    min-width: 160px !important;
+}
+
+.btn-cancelar:hover {
+    border-color: #333 !important;
+    background: #f8f9fa !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 80px 15px 30px 15px !important;
+        gap: 30px !important;
+    }
+    
+    .perfil-header {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 20px !important;
+    }
+    
+    .foto-usuario {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    .nombre-completo {
+        font-size: 2rem !important;
+    }
+    
+    .saldo-form {
+        padding: 30px 20px !important;
+    }
+    
+    .saldo-actual {
+        font-size: 2.5rem !important;
+    }
+    
+    .sugeridos-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    
+    .form-actions {
+        flex-direction: column !important;
+    }
+}
+    
 .obras-grid-mini {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

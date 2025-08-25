@@ -4,7 +4,6 @@ import Navbar from '../Components/Navbar';
 import './Perfil.css';
 
 export default function Perfil() {
-    const [modalAumentar, setModalAumentar] = useState(false);
     const [montoAumentar, setMontoAumentar] = useState('');
 
     // Datos de usuario simulados (después vendrán del estado global)
@@ -20,122 +19,81 @@ export default function Perfil() {
         obrasAdquiridas: 6
     };
 
-
-    // Funciones (vacías por ahora)
-    const abrirModalAumentar = () => {
-        setModalAumentar(true);
-    };
-
-    const cerrarModalAumentar = () => {
-        setModalAumentar(false);
-        setMontoAumentar('');
-    };
-
     const confirmarAumento = () => {
         // Función vacía - aquí irá la lógica para aumentar saldo
         console.log('Aumentando saldo:', montoAumentar);
         // TODO: Implementar lógica de aumento de saldo
-        cerrarModalAumentar();
+        setMontoAumentar('');
     };
 
-    const editarPerfil = () => {
-        // Función vacía - aquí irá la lógica para editar perfil
-        console.log('Redirigiendo a edición de perfil');
-    }
+    const limpiarFormulario = () => {
+        setMontoAumentar('');
+    };
 
 
     return (
         <div className='perfil-page'>
-            <Navbar />
+            <Navbar/>
             <main className="main-content">
-                <div className="perfil-container">
-                    {/* Información principal del usuario */}
-                    <div className="perfil-header">
-                        <div className="foto-usuario">
-                            <img src={usuario.foto} alt={`${usuario.nombre} ${usuario.apellido}`} />
-                        </div>
-                        <div className="info-usuario">
-                            <h1 className="nombre-completo">{usuario.nombre} {usuario.apellido}</h1>
-                            <p className="username">@{usuario.username}</p>
-                            <p className="email">{usuario.email}</p>
-                            <p className="fecha-registro">
-                                Miembro desde: {new Date(usuario.fechaRegistro).toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
-                            </p>
+                <div className="perfil-header">
+                    <div className="foto-usuario">
+                        <img src={usuario.foto} alt={`${usuario.nombre} ${usuario.apellido}`} />
+                    </div>
+                    <div className="info-usuario">
+                        <h1 className="nombre-completo">{usuario.nombre} {usuario.apellido}</h1>
+                        <p className="username">@{usuario.username}</p>
+                    </div>
+                </div>
+
+                {/* Formulario de saldo integrado */}
+                <div className="saldo-form">
+                    <h3>Saldo Disponible</h3>
+                    <p className="saldo-actual">Q.{usuario.saldo.toLocaleString()}</p>
+                    
+                    <p>Ingresa el monto que deseas agregar a tu saldo:</p>
+                    <div className="input-group">
+                        <input
+                            type="number"
+                            placeholder="0"
+                            value={montoAumentar}
+                            onChange={(e) => setMontoAumentar(e.target.value)}
+                            className="input-monto"
+                            min="1"
+                        />
+                    </div>
+                    
+                    <div className="montos-sugeridos">
+                        <p>Montos sugeridos:</p>
+                        <div className="sugeridos-grid">
+                            {[10000, 25000, 50000, 100000].map(monto => (
+                                <button 
+                                    key={monto}
+                                    className={`btn-sugerido ${montoAumentar === monto.toString() ? 'active' : ''}`}
+                                    onClick={() => setMontoAumentar(monto.toString())}
+                                >
+                                    Q.{monto.toLocaleString()}
+                                </button>
+                            ))}
                         </div>
                     </div>
-
-                    {/* Saldo y estadísticas */}
-                    <div className="perfil-stats">
-                        <div className="stat-card saldo-card">
-                            <h3>Saldo Disponible</h3>
-                            <p className="saldo-amount">${usuario.saldo.toLocaleString()}</p>
-                            <button className="btn-aumentar" onClick={abrirModalAumentar}>
-                                Aumentar Saldo
-                            </button>
-                        </div>
-                        <button className="btn-aumentar" onClick={editarPerfil}>
-                                Editar Perfil
+                    
+                    <div className="form-actions">
+                        <button 
+                            className="btn-confirmar" 
+                            onClick={confirmarAumento} 
+                            disabled={!montoAumentar}
+                        >
+                            Confirmar Aumento
+                        </button>
+                        <button 
+                            className="btn-cancelar" 
+                            onClick={limpiarFormulario}
+                        >
+                            Limpiar
                         </button>
                     </div>
-
-                 
-
-                   
-                       
                 </div>
             </main>
-
-            {/* Modal para aumentar saldo */}
-            {modalAumentar && (
-                <div className="modal-overlay" onClick={cerrarModalAumentar}>
-                    <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Aumentar Saldo</h3>
-                            <button className="modal-close" onClick={cerrarModalAumentar}>×</button>
-                        </div>
-                        <div className="modal-body">
-                            <p>Ingresa el monto que deseas agregar a tu saldo:</p>
-                            <div className="input-group">
-                                <span className="input-symbol">$</span>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={montoAumentar}
-                                    onChange={(e) => setMontoAumentar(e.target.value)}
-                                    className="input-monto"
-                                    min="1"
-                                />
-                            </div>
-                            <div className="montos-sugeridos">
-                                <p>Montos sugeridos:</p>
-                                <div className="sugeridos-grid">
-                                    {[10000, 25000, 50000, 100000].map(monto => (
-                                        <button 
-                                            key={monto}
-                                            className="btn-sugerido"
-                                            onClick={() => setMontoAumentar(monto.toString())}
-                                        >
-                                            ${monto.toLocaleString()}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="modal-actions">
-                                <button className="btn-confirmar" onClick={confirmarAumento} disabled={!montoAumentar}>
-                                    Confirmar Aumento
-                                </button>
-                                <button className="btn-cancelar" onClick={cerrarModalAumentar}>
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

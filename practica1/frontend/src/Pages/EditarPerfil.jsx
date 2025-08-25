@@ -7,9 +7,7 @@ export default function EditarPerfil() {
     // Estados para el formulario
     const [formData, setFormData] = useState({
         username: "usuario_demo",
-        nombre: "Juan Carlos",
-        apellido: "Pérez García",
-        email: "juan.perez@artgallery.com",
+        nombreCompleto: "Juan Carlos Pérez García",
         foto: "https://picsum.photos/150/150?random=user"
     });
 
@@ -122,17 +120,12 @@ export default function EditarPerfil() {
             <Navbar />
             <main className="main-content">
                 <div className="editar-container">
-                    <div className="page-header">
-                        <Link to="/perfil" className="btn-volver">← Volver al Perfil</Link>
-                        <h1>Editar Perfil</h1>
-                    </div>
-
                     <div className="formulario-container">
                         {/* Sección de foto */}
                         <div className="seccion-foto">
                             <h2>Foto de Perfil</h2>
-                            <div className="foto-actual">
-                                <img src={imagenPreview} alt="Foto de perfil" />
+                            <div className="foto-container">
+                                <img src={imagenPreview} alt="Foto de perfil" className="foto-preview" />
                                 <div className="foto-controls">
                                     <label htmlFor="nueva-foto" className="btn-cambiar-foto">
                                         Cambiar Foto
@@ -144,8 +137,17 @@ export default function EditarPerfil() {
                                         onChange={handleImageChange}
                                         style={{ display: 'none' }}
                                     />
+
                                 </div>
+                            <button 
+                                className="btn-guardar-info"
+                                onClick={() => abrirModalConfirmacion('foto')}
+                            >
+                                Actualizar
+                            </button>
                             </div>
+                            
+                      
                         </div>
 
                         {/* Información personal */}
@@ -153,7 +155,18 @@ export default function EditarPerfil() {
                             <h2>Información Personal</h2>
                             <div className="form-grid">
                                 <div className="form-group">
-                                    <label htmlFor="username">Nombre de Usuario</label>
+                                    <label htmlFor="nombreCompleto">Nombre Completo</label>
+                                    <input
+                                        type="text"
+                                        id="nombreCompleto"
+                                        name="nombreCompleto"
+                                        value={formData.nombreCompleto}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                 <div className="form-group">
+                                    <label htmlFor="username">Usuario</label>
                                     <input
                                         type="text"
                                         id="username"
@@ -163,91 +176,15 @@ export default function EditarPerfil() {
                                     />
                                 </div>
 
-                                <div className="form-group">
-                                    <label htmlFor="email">Correo Electrónico</label>
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="nombre">Nombre</label>
-                                    <input
-                                        type="text"
-                                        id="nombre"
-                                        name="nombre"
-                                        value={formData.nombre}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="apellido">Apellido</label>
-                                    <input
-                                        type="text"
-                                        id="apellido"
-                                        name="apellido"
-                                        value={formData.apellido}
-                                        onChange={handleInputChange}
-                                    />
-                                </div>
+                              
                             </div>
-
-                            {cambiosRealizados && (
-                                <button 
-                                    className="btn-guardar-info"
-                                    onClick={() => abrirModalConfirmacion('informacion')}
-                                >
-                                    Guardar Cambios de Información
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Cambiar contraseña */}
-                        <div className="seccion-password">
-                            <h2>Cambiar Contraseña</h2>
-                            <div className="form-group">
-                                <label htmlFor="password-actual">Contraseña Actual</label>
-                                <input
-                                    type="password"
-                                    id="password-actual"
-                                    name="actual"
-                                    value={passwords.actual}
-                                    onChange={handlePasswordChange}
-                                    placeholder="Ingresa tu contraseña actual"
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="password-nueva">Nueva Contraseña</label>
-                                <input
-                                    type="password"
-                                    id="password-nueva"
-                                    name="nueva"
-                                    value={passwords.nueva}
-                                    onChange={handlePasswordChange}
-                                    placeholder="Mínimo 6 caracteres"
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="password-confirmar">Confirmar Nueva Contraseña</label>
-                                <input
-                                    type="password"
-                                    id="password-confirmar"
-                                    name="confirmar"
-                                    value={passwords.confirmar}
-                                    onChange={handlePasswordChange}
-                                    placeholder="Repite la nueva contraseña"
-                                />
-                            </div>
-
-                            <button className="btn-cambiar-password" onClick={cambiarContrasena}>
-                                Cambiar Contraseña
+                            
+                            {/* Botón siempre visible */}
+                            <button 
+                                className="btn-guardar-info"
+                                onClick={() => abrirModalConfirmacion('informacion')}
+                            >
+                                Actualizar
                             </button>
                         </div>
                     </div>

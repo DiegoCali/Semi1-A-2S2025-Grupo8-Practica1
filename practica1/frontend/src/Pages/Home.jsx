@@ -39,7 +39,7 @@ function Home (){
     }, []);
 
     return(
-        <>
+        <div className="home-container">
             <div className="container" id="container">
                 <div className="form-container sign-up-container">
                     <form action="#">
@@ -79,7 +79,7 @@ function Home (){
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     )
 }
 
