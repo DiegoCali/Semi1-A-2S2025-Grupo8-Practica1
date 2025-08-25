@@ -267,9 +267,6 @@ export default function CargarObras() {
             {notification && (
                 <div className={`notification ${notification.tipo}`}>
                     <div className="notification-content">
-                        <span className="notification-icon">
-                            {notification.tipo === 'success' ? '✅' : '❌'}
-                        </span>
                         <span className="notification-message">
                             {notification.mensaje}
                         </span>

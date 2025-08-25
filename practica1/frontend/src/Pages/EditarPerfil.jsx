@@ -29,6 +29,7 @@ export default function EditarPerfil() {
     const [modalConfirmacion, setModalConfirmacion] = useState(false);
     const [campoACambiar, setCampoACambiar] = useState('');
     const [imagenPreview, setImagenPreview] = useState(null);
+    const [notification, setNotification] = useState(null);
 
     // Cargar datos del usuario al iniciar
     useEffect(() => {
@@ -50,7 +51,8 @@ export default function EditarPerfil() {
                 setFormData({
                     username: response.data.username || '',
                     full_name: response.data.full_name || '',
-                    photo: null
+                    photo: null,
+                    photo_url: response.data.photo_url || null
                 });
                 
                 // Importante: Actualizar también localStorage con datos frescos
@@ -100,6 +102,19 @@ export default function EditarPerfil() {
             .join('')
             .toUpperCase()
             .substring(0, 2);
+    };
+
+    // Mostrar notificación
+    const mostrarNotificacion = (mensaje, tipo) => {
+        setNotification({ mensaje, tipo });
+        
+        // Auto-hide después de 4 segundos
+        setTimeout(() => {
+            if (document.querySelector('.notification')) {
+                document.querySelector('.notification').classList.add('slide-out');
+                setTimeout(() => setNotification(null), 300);
+            }
+        }, 4000);
     };
 
     // Manejar cambios en los campos del formulario
@@ -162,7 +177,7 @@ export default function EditarPerfil() {
     // Confirmar cambios
     const confirmarCambios = async () => {
         if (!passwords.current_password) {
-            setError('Debes ingresar tu contraseña actual');
+            mostrarNotificacion('Debes ingresar tu contraseña actual', 'error');
             return;
         }
 
@@ -177,7 +192,7 @@ export default function EditarPerfil() {
                 // Subir foto usando POST /users/:id/photo
                 const response = await userService.uploadPhoto(user.id, formData.photo);
                 if (response.success) {
-                    setSuccess('Foto actualizada exitosamente');
+                    mostrarNotificacion('Foto actualizada exitosamente', 'success');
                     // Actualizar datos del usuario con datos frescos de la API
                     const updatedUser = await userService.getUserById(user.id);
                     if (updatedUser.success) {
@@ -190,7 +205,7 @@ export default function EditarPerfil() {
                         
                     }
                 } else {
-                    setError(response.message || 'Error al actualizar la foto');
+                    mostrarNotificacion(response.message || 'Error al actualizar la foto', 'error');
                 }
             } else if (campoACambiar === 'informacion') {
                 // Actualizar información usando PUT /users/:id
@@ -202,7 +217,7 @@ export default function EditarPerfil() {
 
                 const response = await userService.updateProfile(user.id, updateData);
                 if (response.success) {
-                    setSuccess('Información actualizada exitosamente');
+                    mostrarNotificacion('Información actualizada exitosamente', 'success');
                     // Actualizar localStorage con datos frescos de la API
                     const updatedUser = await userService.getUserById(user.id);
                     if (updatedUser.success) {
@@ -219,14 +234,14 @@ export default function EditarPerfil() {
                       
                     }
                 } else {
-                    setError(response.message || 'Error al actualizar la información');
+                    mostrarNotificacion(response.message || 'Error al actualizar la información', 'error');
                 }
             }
             
             cerrarModal();
         } catch (error) {
             console.error('Error:', error);
-            setError('Error interno del servidor');
+            mostrarNotificacion('Error interno del servidor', 'error');
         } finally {
             setLoading(false);
         }
@@ -358,6 +373,17 @@ export default function EditarPerfil() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notificación flotante */}
+            {notification && (
+                <div className={`notification ${notification.tipo}`}>
+                    <div className="notification-content">
+                        <span className="notification-message">
+                            {notification.mensaje}
+                        </span>
                     </div>
                 </div>
             )}

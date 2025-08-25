@@ -9,6 +9,7 @@ export default function Perfil() {
     const [usuario, setUsuario] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notification, setNotification] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -75,9 +76,22 @@ export default function Perfil() {
         return nombreCompleto[0].toUpperCase();
     };
 
+    // Mostrar notificación
+    const mostrarNotificacion = (mensaje, tipo) => {
+        setNotification({ mensaje, tipo });
+        
+        // Auto-hide después de 4 segundos
+        setTimeout(() => {
+            if (document.querySelector('.notification')) {
+                document.querySelector('.notification').classList.add('slide-out');
+                setTimeout(() => setNotification(null), 300);
+            }
+        }, 4000);
+    };
+
     const confirmarAumento = async () => {
         if (!montoAumentar || parseFloat(montoAumentar) <= 0) {
-            alert('Por favor ingresa una cantidad válida mayor a 0');
+            mostrarNotificacion('Por favor ingresa una cantidad válida mayor a 0', 'error');
             return;
         }
 
@@ -85,18 +99,18 @@ export default function Perfil() {
             const result = await userService.addBalance(usuario.id, parseFloat(montoAumentar));
             
             if (result.success && result.data.ok) {
-                alert(`Saldo agregado exitosamente! Nuevo saldo: $${parseFloat(result.data.balance).toLocaleString()}`);
+                mostrarNotificacion(`Saldo agregado exitosamente! Nuevo saldo: $${parseFloat(result.data.balance).toLocaleString()}`, 'success');
                 setMontoAumentar('');
                 // Recargar datos del usuario
                 cargarDatosUsuario();
                 // Disparar evento para actualizar Navbar
                 window.dispatchEvent(new CustomEvent('userUpdated'));
             } else {
-                alert('Error al agregar saldo: ' + (result.error || 'Error desconocido'));
+                mostrarNotificacion('Error al agregar saldo: ' + (result.error || 'Error desconocido'), 'error');
             }
         } catch (error) {
             console.error('Error al agregar saldo:', error);
-            alert('Error de conexión al agregar saldo');
+            mostrarNotificacion('Error de conexión al agregar saldo', 'error');
         }
     };
 
@@ -207,6 +221,17 @@ export default function Perfil() {
                     </div>
                 </div>
             </main>
+
+            {/* Notificación flotante */}
+            {notification && (
+                <div className={`notification ${notification.tipo}`}>
+                    <div className="notification-content">
+                        <span className="notification-message">
+                            {notification.mensaje}
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

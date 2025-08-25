@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { userService } from '../service/users';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -104,6 +105,9 @@ export default function Navbar() {
                         <span className="saldo-label">Saldo:</span>
                         <span className="saldo-amount">Q.{parseFloat(usuario.balance).toLocaleString()}</span>
                     </div>
+                    
+                    {/* Campanita de notificaciones */}
+                    <NotificationBell />
                     
                     <div className="user-profile" onClick={toggleMenuPerfil}>
                         <div className="user-initials">

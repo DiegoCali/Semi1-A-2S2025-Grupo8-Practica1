@@ -13,6 +13,7 @@ export default function Galeria() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [purchasing, setPurchasing] = useState(false);
+    const [notification, setNotification] = useState(null);
 
     // Cargar obras al montar el componente
     useEffect(() => {
@@ -47,6 +48,19 @@ export default function Galeria() {
         }
     };
 
+    // Mostrar notificación
+    const mostrarNotificacion = (mensaje, tipo) => {
+        setNotification({ mensaje, tipo });
+        
+        // Auto-hide después de 4 segundos
+        setTimeout(() => {
+            if (document.querySelector('.notification')) {
+                document.querySelector('.notification').classList.add('slide-out');
+                setTimeout(() => setNotification(null), 300);
+            }
+        }, 4000);
+    };
+
     // Funciones del modal (vacías por ahora)
     const abrirModal = (obra) => {
         setObraSeleccionada(obra);
@@ -63,25 +77,25 @@ export default function Galeria() {
         
         // Validaciones mejoradas
         if (!user.id) {
-            alert('Debes iniciar sesión para comprar obras');
+            mostrarNotificacion('Debes iniciar sesión para comprar obras', 'error');
             return;
         }
 
         if (!obraSeleccionada || !obraSeleccionada.disponible) {
-            alert('Esta obra no está disponible');
+            mostrarNotificacion('Esta obra no está disponible', 'error');
             return;
         }
 
         // Validar que no sea su propia obra
         if (obraSeleccionada.sellerId === user.id) {
             console.log(`Intento de compra bloqueado: Usuario ${user.id} intentó comprar su propia obra ${obraSeleccionada.id}`);
-            alert(' No puedes comprar tu propia obra');
+            mostrarNotificacion('No puedes comprar tu propia obra', 'error');
             return;
         }
 
         // Validar que tenga datos válidos
         if (!obraSeleccionada.id || !user.id) {
-            alert('Error: Datos de usuario u obra inválidos');
+            mostrarNotificacion('Error: Datos de usuario u obra inválidos', 'error');
             return;
         }
 
@@ -91,7 +105,7 @@ export default function Galeria() {
             const result = await artworkService.purchaseArtwork(user.id, obraSeleccionada.id);
             
             if (result.success && result.data && result.data.ok) {
-                alert(`¡Compra exitosa! Has adquirido "${obraSeleccionada.titulo}" por $${obraSeleccionada.precio.toLocaleString()}`);
+                mostrarNotificacion(`¡Compra exitosa! Has adquirido "${obraSeleccionada.titulo}" por $${obraSeleccionada.precio.toLocaleString()}`, 'success');
                 
                 // Actualizar el estado local de la obra
                 setObras(prevObras => 
@@ -127,11 +141,11 @@ export default function Galeria() {
             } else {
                 const errorMsg = result.error || result.message || 'Error desconocido en la compra';
                 console.error('Error en compra:', errorMsg);
-                alert('Error en la compra: ' + errorMsg);
+                mostrarNotificacion('Error en la compra: ' + errorMsg, 'error');
             }
         } catch (error) {
             console.error('Error al comprar:', error);
-            alert('Error de conexión al procesar la compra');
+            mostrarNotificacion('Error de conexión al procesar la compra', 'error');
         } finally {
             setPurchasing(false);
         }
@@ -254,6 +268,17 @@ export default function Galeria() {
                                 }
                             })()}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notificación flotante */}
+            {notification && (
+                <div className={`notification ${notification.tipo}`}>
+                    <div className="notification-content">
+                        <span className="notification-message">
+                            {notification.mensaje}
+                        </span>
                     </div>
                 </div>
             )}
