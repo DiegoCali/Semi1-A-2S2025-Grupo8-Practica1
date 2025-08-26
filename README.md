@@ -2,7 +2,146 @@
 
 ## Documentacion practica 1
 
-## base de datos
+## Backend
+
+El backend está desarrollado en **Node.js + Express** y el backend2 en **Python 3**, organizado en rutas separadas para usuarios, autenticación, obras y compras.  
+Todas las respuestas se entregan en formato **JSON**, salvo endpoints de imágenes/redirecciones.
+
+---
+
+## Healthcheck
+
+### `GET /health`
+
+- Verifica que la API está en funcionamiento.  
+- **Respuesta:** `{ ok: true }`
+
+---
+
+## Autenticación (`/auth`)
+
+### `POST /auth/register`
+
+- **Body (form-data o JSON):**
+  - `username` (string, requerido)
+  - `full_name` (string, requerido)
+  - `password` (string, requerido)
+  - `image` (archivo opcional, foto de perfil)
+- **Acciones:**
+  - Crea un usuario nuevo.
+  - Encripta contraseña con **MD5** (16 chars).
+  - Opción de subir foto de perfil (almacenada en `Fotos_Perfil`).
+- **Respuestas:**
+  - `201 Created` → usuario creado
+  - `409 Conflict` → usuario ya existe
+
+---
+
+### `POST /auth/login`
+
+- **Body (JSON):**
+  - `username` (string)
+  - `password` (string)
+- **Acciones:**
+  - Valida credenciales contra la base de datos.
+- **Respuestas:**
+  - `200 OK` → retorna perfil básico `{ id, username, full_name, balance }`
+  - `401 Unauthorized` → credenciales inválidas
+
+---
+
+## Usuarios (`/users`)
+
+### `GET /users/:id`
+
+- Retorna información de perfil del usuario.
+
+### `POST /users/:id/balance`
+
+- **Body:** `{ amount: number }`
+- Recarga saldo al usuario.
+- Retorna nuevo balance.
+
+### `PUT /users/:id`
+
+- **Body:** `{ username?, full_name?, new_password?, current_password }`
+- Edita datos de perfil (requiere contraseña actual).
+- Valida duplicados y cambios.
+
+### `POST /users/:id/photo`
+
+- **form-data:** `image` (archivo requerido)
+- Sube/actualiza foto de perfil.
+
+### `GET /users/:id/photo`
+
+- Redirige a la URL pública de la foto de perfil.
+
+### `GET /users/:id/notifications`
+
+- Lista notificaciones del usuario.
+
+### `PUT /users/:id/notifications/:notifId/read`
+
+- Marca notificación como leída.
+
+---
+
+## Obras de Arte (`/artworks`)
+
+### `GET /artworks`
+
+- Lista obras disponibles en la galería (paginación con `limit` y `offset`).
+
+### `GET /artworks/created?userId=...`
+
+- Obras creadas/publicadas por un usuario.
+
+### `GET /artworks/mine?userId=...`
+
+- Obras adquiridas o pertenecientes al usuario.
+
+### `POST /artworks/upload`
+
+- **form-data:**
+  - `image` (archivo requerido)
+  - `userId` (int requerido)
+  - `name` (string requerido)
+  - `price` (decimal requerido ≥ 0)
+- Publica una obra en la galería y la sube a `Fotos_Publicadas`.
+
+---
+
+## Compras (`/purchase`)
+
+### `POST /purchase`
+
+- **Body:** `{ buyerId, artworkId }`
+- Ejecuta compra de obra:
+  - Valida saldo suficiente.
+  - Transfiere saldo entre comprador y vendedor.
+  - Marca obra como no disponible.
+- **Respuestas:**
+  - `200 OK` → compra exitosa
+  - `409 Conflict` → errores de negocio (saldo insuficiente, obra no disponible, etc.)
+
+---
+
+## Extras
+
+### `GET /artworks/__debug`
+
+- Devuelve información de configuración del almacenamiento (`local` o `s3`).
+- Solo para depuración.
+
+---
+
+## Notas
+
+- Todas las contraseñas se guardan en **MD5(16)**.
+- Las imágenes (obras y perfiles) se guardan en **S3** o almacenamiento local (según configuración).
+
+## Base de datos
 
 La base de datos está diseñada para soportar una **galería de arte digital en la nube**, donde los usuarios pueden:
 
