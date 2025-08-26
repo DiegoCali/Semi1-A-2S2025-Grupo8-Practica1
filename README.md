@@ -163,7 +163,6 @@ erDiagram
   ARTWORK ||--o{ PURCHASE : is_purchased_in
   USER ||--o{ NOTIFICATION : receives
 ```
-<img width="3840" height="3538" alt="Untitled diagram _ Mermaid Chart-2025-08-26-194135" src="https://github.com/user-attachments/assets/6363e14b-0f5a-473a-9590-714e8f16a138" />
 
 ---
 
