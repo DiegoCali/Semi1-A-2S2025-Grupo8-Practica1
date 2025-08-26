@@ -112,36 +112,58 @@ Historial de adquisiciones realizadas por los usuarios.
 
 ```mermaid
 erDiagram
-    usuarios {
-        INT id_usuario PK
-        VARCHAR usuario UNIQUE
-        VARCHAR nombre
-        VARCHAR password
-        VARCHAR foto_perfil
-        DECIMAL saldo
-    }
+  direction LR
 
-    obras {
-        INT id_obra PK
-        VARCHAR titulo
-        VARCHAR autor
-        YEAR anio
-        VARCHAR url_imagen
-        DECIMAL precio
-        BOOLEAN disponible
-    }
+  USER {
+    int id PK
+    string username UK
+    string full_name
+    string password_md5
+    string photo_url
+    decimal balance
+    datetime created_at
+    datetime updated_at
+  }
 
-    compras {
-        INT id_compra PK
-        INT id_usuario FK
-        INT id_obra FK
-        DATETIME fecha
-        DECIMAL monto
-    }
+  ARTWORK {
+    int id PK
+    string name
+    string image_name
+    string url
+    decimal price
+    boolean is_available
+    int original_owner_id FK
+    int current_owner_id FK
+    string acquisition_type
+    datetime created_at
+    datetime updated_at
+  }
 
-    usuarios ||--o{ compras : realiza
-    obras ||--o{ compras : pertenece
+  PURCHASE {
+    int id PK
+    int buyer_id FK
+    int artwork_id FK
+    decimal amount
+    datetime purchased_at
+  }
+
+  NOTIFICATION {
+    int id PK
+    int user_id FK
+    string source
+    string title
+    string message
+    boolean is_read
+    datetime created_at
+  }
+
+  USER ||--o{ ARTWORK : publishes
+  USER ||--o{ ARTWORK : owns
+  USER ||--o{ PURCHASE : makes
+  ARTWORK ||--o{ PURCHASE : is_purchased_in
+  USER ||--o{ NOTIFICATION : receives
 ```
+<img width="3840" height="3538" alt="Untitled diagram _ Mermaid Chart-2025-08-26-194135" src="https://github.com/user-attachments/assets/6363e14b-0f5a-473a-9590-714e8f16a138" />
 
 ---
 
