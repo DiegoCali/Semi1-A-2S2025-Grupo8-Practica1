@@ -1,8 +1,72 @@
 # Proyectos de laboratorio grupo 8
 
+## Arquitectura General
+
+![arquitectura](./imgs/arch.png)
+
+Consiste en un S3 que actua como frontend, siendo una página estática. Tiene políticas de lectura para todos los usuarios y está configurado como sitio web estático.
+
+El frontend está conectado con un loadbalancer que distribuye el tráfico entre las instancias de backend. 
+
+Las instancias del backend son EC2 con la imagen de debian una corre el backend en python (fastapi) y la otra en node.js.
+
+Para guardar datos de texto utilizamos un RDS y para guardar multimedia se utiliza otro S3 para almacenar objetos.
+
+Todo trabaja en una VPC pública y la base de datos en una privada.
+
 ## Usuarios IAM utilizados:
 
 ![iam](./imgs/IAM_users.png)
+
+**Políticas utilizadas:**
+- `AmazonS3FullAccess`
+- `AmazonEC2FullAccess`
+- `AmazonRDSFullAccess`
+
+## Instancias
+
+**EC2**
+
+
+![ec2](./imgs/EC2.png)
+**LB**
+
+![lb](./imgs/LB.png)
+
+## S3
+
+![s3](./imgs/S3.png)
+
+## RDS
+
+![rds](./imgs/RDS.png)
+
+## Políticas para el S3
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::semi1-/*"
+        }
+    ]
+}
+```
+
+## Aplicación Web
+
+![login](./imgs/login.png)
+
+![photo_upload](./imgs/photo_upload.png)
+
+![gallery](./imgs/galery.png)
+
+![profile](./imgs/profile.png)
+
 
 ## Documentacion practica 1
 
