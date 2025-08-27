@@ -1,5 +1,9 @@
 # Proyectos de laboratorio grupo 8
 
+## Usuarios IAM utilizados:
+
+![iam](./imgs/IAM_users.png)
+
 ## Documentacion practica 1
 
 ## Backend

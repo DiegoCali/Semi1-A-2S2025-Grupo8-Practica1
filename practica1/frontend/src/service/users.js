@@ -170,9 +170,10 @@ export const userService = {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Si la respuesta es exitosa, construir la URL de la imagen
-            const imageUrl = `${API_BASE}/users/${userId}/photo`;
+            // Si la respuesta es exitosa, construir la URL de la imagen            
+            const imageUrl = response.url;            
 
+            console.log('URL de la foto del usuario:', imageUrl);
             return {
                 success: true,
                 url: imageUrl,

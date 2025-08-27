@@ -6,12 +6,12 @@ export const authService = {
     register: async (userData) => {
         try {
             // Si hay imagen, usar FormData
-            if (userData.image) {
+            if (userData.image) {                
                 const formData = new FormData();
                 formData.append('username', userData.username);
                 formData.append('full_name', userData.full_name);
                 formData.append('password', userData.password);
-                formData.append('image', userData.image);
+                formData.append('image', userData.image);                
 
                 const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
