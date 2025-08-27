@@ -88,13 +88,7 @@ class S3Storage(StorageInterface):
     def public_url_from_key(self, key: str) -> str:
         if self.cdn_domain:
             return f"https://{self.cdn_domain}/{key}"
-        
-        if self.region == 'us-east-1':
-            host = 's3.amazonaws.com'
-        else:
-            host = f's3.{self.region}.amazonaws.com'
-        
-        return f"https://{self.bucket}.{host}/{key}"
+        return f"https://{self.bucket}.s3.{self.region}.amazonaws.com/{key}"
 
     def _get_extension_from_mime(self, mime_type: str) -> str:
         if not mime_type:

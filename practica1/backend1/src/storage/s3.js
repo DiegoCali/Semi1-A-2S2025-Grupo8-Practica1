@@ -56,11 +56,7 @@ export class S3Storage {
     if (this.cdnDomain) {
       return `https://${this.cdnDomain}/${key}`;
     }
-    const host =
-      this.region === "us-east-1"
-        ? "s3.amazonaws.com"
-        : `s3.${this.region}.amazonaws.com`;
-    return `https://${this.bucket}.${host}/${key}`;
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
   async signedUrlFromKey(key, expiresInSeconds = 3600) {

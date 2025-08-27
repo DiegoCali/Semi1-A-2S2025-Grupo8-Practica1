@@ -35,7 +35,7 @@ export const artworkService = {
                 disponible: !!artwork.is_available,
                 
                 // URLs de imagen usando campos reales
-                imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                imagen: artwork.public_url ? `${artwork.public_url}` : null,
                 urlOriginal: artwork.url_key,
                 
                 // Información del vendedor usando campos reales
@@ -98,7 +98,7 @@ export const artworkService = {
                     id: artwork.id,
                     precio: parseFloat(artwork.price || 0),
                     disponible: !!artwork.is_available,
-                    imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                    imagen: artwork.public_url ? `${artwork.public_url}` : null,
                     tipoAdquisicion: artwork.acquisition_type, // ✅ USAR EL CAMPO REAL "acquisition_type"
                     sellerId: artwork.seller_id,
                     urlKey: artwork.url_key,
@@ -166,7 +166,7 @@ export const artworkService = {
                     id: artwork.id,
                     precio: parseFloat(artwork.price || 0),
                     disponible: !!artwork.is_available,
-                    imagen: artwork.public_url ? `${API_BASE}${artwork.public_url}` : null,
+                    imagen: artwork.public_url ? `${artwork.public_url}` : null,
                     tipoAdquisicion: artwork.acquisition_type,
                     sellerId: artwork.seller_id,
                     urlKey: artwork.url_key,
